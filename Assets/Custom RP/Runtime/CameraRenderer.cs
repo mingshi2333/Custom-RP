@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.Rendering;
 public partial class CameraRenderer
 {
@@ -17,21 +18,27 @@ public partial class CameraRenderer
 
     private Lighting lighting = new Lighting();
     public void Render(ScriptableRenderContext context, Camera camera,
-        bool useDynamicBatching, bool useGPUInstancing)
+        bool useDynamicBatching, bool useGPUInstancing,ShadowSettings shadowSettings)
     {
         this.context = context;
         this.camera = camera;
         PrepareBuffer();
         PrepareForSceneWindow();
-        if (!Cull())
+        if (!Cull(shadowSettings.maxDistance))
         {
             return;
         }
+        //Setup();
+        buffer.BeginSample(SampleName);
+        ExecuteBuffer();
+        lighting.Setup(context,cullingResults,shadowSettings);
+        buffer.EndSample(SampleName);
         Setup();
-        lighting.Setup(context,cullingResults);
         DrawVisibleGeometry(useDynamicBatching,useGPUInstancing);
         DrawUnsupportedShaders();
         DrawGizmos();
+        ///在提交之前清理生成的shadowmap
+        lighting.Cleanup();
         Submit();
     }
 
@@ -95,10 +102,12 @@ public partial class CameraRenderer
         buffer.Clear();
     }
 
-    bool Cull()
+    bool Cull(float maxShadowDistance)
     {
         if (camera.TryGetCullingParameters(out ScriptableCullingParameters p))
         {
+            //p.shadowDistance = maxShadowDistance;//阴影距离剔除
+            p.shadowDistance = Math.Min(maxShadowDistance, camera.farClipPlane);//超出渲染距离的不要，阴影超过距离的也不要，所以取最小值
             cullingResults = context.Cull(ref p);
             return true;
         }

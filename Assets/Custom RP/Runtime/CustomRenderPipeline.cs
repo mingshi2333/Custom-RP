@@ -5,10 +5,13 @@ public class CustomRenderPipeline : RenderPipeline
 {
     //实例，在创建的时候自动设置pipelinebatching 
     bool useDynamicBatching, useGPUInstancing;
-    public CustomRenderPipeline(bool useDynamicBatching, bool useGPUInstancing, bool useSRPBatcher)
+    ShadowSettings shadowSettings;
+    public CustomRenderPipeline(bool useDynamicBatching, bool useGPUInstancing, bool useSRPBatcher,ShadowSettings shadowSettings
+    )
     {
         this.useDynamicBatching = useDynamicBatching;
         this.useGPUInstancing = useGPUInstancing;
+        this.shadowSettings = shadowSettings;
         GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatcher;
         GraphicsSettings.lightsUseLinearIntensity = true;//使用颜色线性空间
     }
@@ -16,7 +19,7 @@ public class CustomRenderPipeline : RenderPipeline
     protected override void Render(ScriptableRenderContext context, Camera[] cameras) {
         foreach (var camera in cameras)
         {
-            renderer.Render(context,camera,useDynamicBatching,useGPUInstancing);
+            renderer.Render(context,camera,useDynamicBatching,useGPUInstancing,shadowSettings);
             
 
         }

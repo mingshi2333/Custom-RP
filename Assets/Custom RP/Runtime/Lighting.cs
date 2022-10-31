@@ -1,6 +1,7 @@
 ﻿using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.UI;
 
 public class Lighting
 {
@@ -17,12 +18,18 @@ public class Lighting
         dirLightDirections = new Vector4[maxDirLightCount];
 
     private CullingResults cullingResults;//剔除摄像机影响不到的地方
-    public void Setup(ScriptableRenderContext context,CullingResults cullingResults)
+    private Shadows shadows = new Shadows();
+    public void Setup(ScriptableRenderContext context,CullingResults cullingResults,ShadowSettings shadowSettings)
     {
         this.cullingResults = cullingResults;
         buffer.BeginSample(bufferName);
+        //【回顾计算机图形学我们可以知道实时渲染的shadow实际上就是从光线开始渲染的，所以我们需要light所看见的剔除等等】
+        
+        shadows.Setup(context,cullingResults,shadowSettings);//
+        
         //SetupDirectionalLight();
         SetupLights();
+        shadows.Render();
         buffer.EndSample(bufferName);
         context.ExecuteCommandBuffer(buffer);
         buffer.Clear();
@@ -48,6 +55,12 @@ public class Lighting
     {
         dirLightColors[index] = visibleLight.finalColor;
         dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);//获取光源的超前方向
+        
+        shadows.ReserveDirectionalShadows(visibleLight.light,index);
 
+    }
+    public void Cleanup()
+    {
+        shadows.Cleanup();
     }
 }
