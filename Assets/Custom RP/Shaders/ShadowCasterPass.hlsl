@@ -52,6 +52,5 @@ void ShadowCasterPassFragment(Varyings input)
     clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff));//裁剪
     #endif
     
-
 }
 #endif

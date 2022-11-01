@@ -3,7 +3,7 @@ using UnityEngine.Rendering;
 
 public class Shadows
 {
-    private const int maxShadowedDirectionalLightCount  = 1;
+    private const int maxShadowedDirectionalLightCount  = 2;
     private int ShadowedDirectionalLightCount;
     /// <summary>
     /// 方向性的阴影图集，从设置中获取图集大小的整数，然后在命令缓冲区上调用GetTemporaryRT，将纹理标识符作为参数，加上其宽度和高度的像素大小。
