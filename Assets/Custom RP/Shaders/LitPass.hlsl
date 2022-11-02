@@ -4,18 +4,21 @@
 #define MAX_DIRECTIONAL_LIGHT_COUNT 4
 
 #include "../ShaderLibrary/Common.hlsl"
+#include "../ShaderLibrary/Surface.hlsl"
+#include  "../ShaderLibrary/Shadows.hlsl"
 
 
 CBUFFER_START(_CustomLight)
     int _DirectionalLightCount;
     float4 _DirectionalLightColors[MAX_DIRECTIONAL_LIGHT_COUNT];
     float4 _DirectionalLightDirections[MAX_DIRECTIONAL_LIGHT_COUNT];
+    float4 _DirectionalLightShadowData[MAX_DIRECTIONAL_LIGHT_COUNT];
 CBUFFER_END
 
-#include "../ShaderLibrary/Surface.hlsl"
 #include "../ShaderLibrary/Light.hlsl"
 #include  "../ShaderLibrary/BRDF.hlsl"
 #include "../ShaderLibrary/Lighting.hlsl"
+
 
 TEXTURE2D(_BaseMap);
 SAMPLER(sampler_BaseMap);
@@ -72,6 +75,7 @@ float4 LitPassFragment  (Varyings input) : SV_TARGET
     float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_BaseColor);
     float4 base  = baseColor*baseMap;
     Surface surface;
+    surface.position = input.positionWS;
     surface.viewDirection = normalize(_WorldSpaceCameraPos - input.positionWS);
     surface.normal = normalize(input.normalWS);
     surface.color = base.rgb;

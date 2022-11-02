@@ -1,14 +1,18 @@
-﻿using UnityEngine;
+﻿using UnityEditor;
+using UnityEngine;
 using UnityEngine.Rendering;
 
 public class Shadows
 {
-    private const int maxShadowedDirectionalLightCount  = 2;
+    private const int maxShadowedDirectionalLightCount  = 4;
     private int ShadowedDirectionalLightCount;
     /// <summary>
     /// 方向性的阴影图集，从设置中获取图集大小的整数，然后在命令缓冲区上调用GetTemporaryRT，将纹理标识符作为参数，加上其宽度和高度的像素大小。
     /// </summary>
-    private static int dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas");
+    private static int dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas");//阴影绘制图集
+
+    private static int dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices");//着色器阴影矩阵标志
+    private static Matrix4x4[] dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount];//静态阴影矩阵
 
     struct ShadowedDirectionalLight
     {
@@ -62,9 +66,12 @@ public class Shadows
         buffer.ClearRenderTarget(true,false,Color.clear);
         buffer.BeginSample(bufferName);
         ExecuteBuffer();
+        int split = ShadowedDirectionalLightCount <= 1 ? 1 : 2;//灯的总数大于1就开始分
+        int tileSize = atlasSize / split;
+        
         for (int i = 0; i < ShadowedDirectionalLightCount; i++)
         {
-            RenderDirectionalShadows(i,atlasSize);
+            RenderDirectionalShadows(i,split,tileSize);
         }
         buffer.EndSample(bufferName);
         ExecuteBuffer();
@@ -74,7 +81,7 @@ public class Shadows
 /// </summary>
 /// <param name="index"></param>
 /// <param name="tileSize"></param>
-    void RenderDirectionalShadows(int index, int tileSize)
+    void RenderDirectionalShadows(int index, int split,int tileSize)
 {
     ShadowedDirectionalLight light = ShadowedDirectionalLights[index];
     var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex);
@@ -84,7 +91,14 @@ public class Shadows
         out ShadowSplitData splitData
     );//2 3 4 参数控制了阴影联机   输出参数 视图矩阵 投影矩阵 shadowsplitdata参数
     shadowSettings.splitData = splitData;
+    
+    // SetTileViewport(index,split,tileSize);
+
+    dirShadowMatrices[index] =
+        ConvertToAtlasMatrix(projectionMatrix * viewMatrix, SetTileViewport(index, split, tileSize), split);//
+    
     buffer.SetViewProjectionMatrices(viewMatrix,projectionMatrix);
+    buffer.SetGlobalMatrixArray(dirShadowMatricesId,dirShadowMatrices);
     ExecuteBuffer();
     context.DrawShadows(ref shadowSettings);
 }
@@ -117,14 +131,58 @@ public class Shadows
     /// </summary>
     /// <param name="light"></param>
     /// <param name="visibleLightIndex"></param>
-    public void ReserveDirectionalShadows(Light light, int visibleLightIndex)
+    public Vector2 ReserveDirectionalShadows(Light light, int visibleLightIndex)
     {
         //增加条件 如果灯光设置为无阴影 或者强度不大于0 他就该没有阴影  最后一个条件是判别该光是否影响剔除范围内的物体
         if (ShadowedDirectionalLightCount < maxShadowedDirectionalLightCount&&light.shadows!=LightShadows.None&&light.shadowStrength>0f&&cullingResults.GetShadowCasterBounds(visibleLightIndex,out Bounds b))
         {
-            ShadowedDirectionalLights[ShadowedDirectionalLightCount++] = new ShadowedDirectionalLight
+            ShadowedDirectionalLights[ShadowedDirectionalLightCount] = new ShadowedDirectionalLight
                 { visibleLightIndex = visibleLightIndex };
+            return new Vector2(light.shadowStrength, ShadowedDirectionalLightCount++);
         }
+        return Vector2.zero;
     }
+/// <summary>
+/// 我们可以调整渲染视口到单个tile，计算偏移量，然后计算视口
+/// </summary>
+/// <param name="index"></param>
+/// <param name="split"></param>
+/// <param name="tileSize"></param>
+    Vector2 SetTileViewport(int index, int split,float tileSize)
+    {
+        //    ____
+        //   |2|3|
+        //   |0|1|
+        //   
+        Vector2 offset = new Vector2(index % split, index / split);//fun code 
+        buffer.SetViewport(new Rect(offset.x * tileSize,offset.y*tileSize,tileSize,tileSize));
+        return offset;
+    }
+
+    Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, int split)
+    {
+        if (SystemInfo.usesReversedZBuffer)
+        {
+            m.m20 *= -1;
+            m.m21 *= -1;
+            m.m22 *= -1;
+            m.m23 *= -1;
+            float scale = 1f / split;
+            m.m00 = (0.5f * (m.m00 + m.m30) + offset.x * m.m30) * scale;
+            m.m01 = (0.5f * (m.m01 + m.m31) + offset.x * m.m31) * scale;
+            m.m02 = (0.5f * (m.m02 + m.m32) + offset.x * m.m32) * scale;
+            m.m03 = (0.5f * (m.m03 + m.m33) + offset.x * m.m33) * scale;
+            m.m10 = (0.5f * (m.m10 + m.m30) + offset.y * m.m30) * scale;
+            m.m11 = (0.5f * (m.m11 + m.m31) + offset.y * m.m31) * scale;
+            m.m12 = (0.5f * (m.m12 + m.m32) + offset.y * m.m32) * scale;
+            m.m13 = (0.5f * (m.m13 + m.m33) + offset.y * m.m33) * scale;
+            m.m20 = 0.5f * (m.m20 + m.m30);
+            m.m21 = 0.5f * (m.m21 + m.m31);
+            m.m22 = 0.5f * (m.m22 + m.m32);
+            m.m23 = 0.5f * (m.m23 + m.m33);
+        }
+        return m;
+    }
+    
 
 }
