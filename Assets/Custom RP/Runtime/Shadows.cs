@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 public class Shadows
 {
     private const int maxShadowedDirectionalLightCount  = 4;
+    private const int maxCascades = 4;
     private int ShadowedDirectionalLightCount;
     /// <summary>
     /// 方向性的阴影图集，从设置中获取图集大小的整数，然后在命令缓冲区上调用GetTemporaryRT，将纹理标识符作为参数，加上其宽度和高度的像素大小。
@@ -12,7 +13,7 @@ public class Shadows
     private static int dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas");//阴影绘制图集
 
     private static int dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices");//着色器阴影矩阵标志
-    private static Matrix4x4[] dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount];//静态阴影矩阵
+    private static Matrix4x4[] dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount*maxCascades];//静态阴影矩阵*联机阴影层数
 
     struct ShadowedDirectionalLight
     {
@@ -66,7 +67,8 @@ public class Shadows
         buffer.ClearRenderTarget(true,false,Color.clear);
         buffer.BeginSample(bufferName);
         ExecuteBuffer();
-        int split = ShadowedDirectionalLightCount <= 1 ? 1 : 2;//灯的总数大于1就开始分
+        int tiles = ShadowedDirectionalLightCount * settings.directional.cascadeCount;//所有的tile数目
+        int split = tiles <= 1 ? 1 :tiles<4?2:4;//灯的总数大于1就开始分
         int tileSize = atlasSize / split;
         
         for (int i = 0; i < ShadowedDirectionalLightCount; i++)
@@ -85,22 +87,31 @@ public class Shadows
 {
     ShadowedDirectionalLight light = ShadowedDirectionalLights[index];
     var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex);
-    cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(
-        light.visibleLightIndex, 0, 1, Vector3.zero, tileSize, 0f,
-        out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix,
-        out ShadowSplitData splitData
-    );//2 3 4 参数控制了阴影联机   输出参数 视图矩阵 投影矩阵 shadowsplitdata参数
-    shadowSettings.splitData = splitData;
     
-    // SetTileViewport(index,split,tileSize);
+    int cascadeCount = settings.directional.cascadeCount;
+    int tileOffset = index * cascadeCount;
+    Vector3 ratios = settings.directional.CascadeRatios;
+    for (int i = 0; i < cascadeCount; i++)
+    {
+        cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(
+            light.visibleLightIndex, i, cascadeCount, ratios, tileSize, 0f,
+            out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix,
+            out ShadowSplitData splitData
+        ); //2 3 4 参数控制了阴影联机   输出参数 视图矩阵 投影矩阵 shadowsplitdata参数
 
-    dirShadowMatrices[index] =
-        ConvertToAtlasMatrix(projectionMatrix * viewMatrix, SetTileViewport(index, split, tileSize), split);//
-    
-    buffer.SetViewProjectionMatrices(viewMatrix,projectionMatrix);
-    buffer.SetGlobalMatrixArray(dirShadowMatricesId,dirShadowMatrices);
-    ExecuteBuffer();
-    context.DrawShadows(ref shadowSettings);
+        shadowSettings.splitData = splitData;
+        int tileIndex = tileOffset + i;
+
+        // SetTileViewport(index,split,tileSize);
+
+        dirShadowMatrices[tileIndex] =
+            ConvertToAtlasMatrix(projectionMatrix * viewMatrix, SetTileViewport(tileIndex, split, tileSize), split); //
+
+        buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
+        buffer.SetGlobalMatrixArray(dirShadowMatricesId, dirShadowMatrices);
+        ExecuteBuffer();
+        context.DrawShadows(ref shadowSettings);
+    }
 }
 /// <summary>
 /// 得到临时纹理后，我们需要保留他知道我们的摄像机完成渲染
@@ -138,7 +149,7 @@ public class Shadows
         {
             ShadowedDirectionalLights[ShadowedDirectionalLightCount] = new ShadowedDirectionalLight
                 { visibleLightIndex = visibleLightIndex };
-            return new Vector2(light.shadowStrength, ShadowedDirectionalLightCount++);
+            return new Vector2(light.shadowStrength,settings.directional.cascadeCount*ShadowedDirectionalLightCount++);
         }
         return Vector2.zero;
     }
