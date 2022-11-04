@@ -4,8 +4,8 @@
 
 public class ShadowSettings
 {
-    [Min(0f)] public float maxDistance = 100f;
-
+    [Min(0.001f)] public float maxDistance = 100f;
+    [Range(0.001f, 1f)] public float distanceFade = 0.1f;
     public enum TextureSize
     {
         _256 = 256, _512 = 512, _1024 = 1024,
@@ -18,14 +18,16 @@ public class ShadowSettings
         public TextureSize atlasSize;
         [Range(1, 4)] public int cascadeCount;
         [Range(0f, 1f)] public float cascadeRatio1, cascadeRatio2, cascadeRatio3;//联级阴影参数
+        [Range(0.001f, 1f)] public float cascadeFade;
         public Vector3 CascadeRatios =>
             new Vector3(cascadeRatio1, cascadeRatio2, cascadeRatio3);//for ComputeDirectionalShadowMatricesAndCullingPrimitives
+        
 
     }
     
     public Directional directional = new Directional
     {
-        atlasSize = TextureSize._1024,cascadeCount = 4,cascadeRatio1 = 0.1f,cascadeRatio2 = 0.2f,cascadeRatio3 = 0.3f
+        atlasSize = TextureSize._1024,cascadeCount = 4,cascadeRatio1 = 0.1f,cascadeRatio2 = 0.2f,cascadeRatio3 = 0.3f,cascadeFade  = 0.1f
     };
 
     

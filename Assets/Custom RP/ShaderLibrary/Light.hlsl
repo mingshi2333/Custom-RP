@@ -7,26 +7,30 @@ struct Light {
     float attenuation;
 };
 
-DirectionalShadowData GetDirectionalShadowData (int lightIndex) {
+DirectionalShadowData GetDirectionalShadowData (int lightIndex,ShadowData shadowData) {
     DirectionalShadowData data;
-    data.strength = _DirectionalLightShadowData[lightIndex].x;
-    data.tileIndex = _DirectionalLightShadowData[lightIndex].y;
+    //data.strength = _DirectionalLightShadowData[lightIndex].x;
+    data.strength = _DirectionalLightShadowData[lightIndex].x*shadowData.strength;//阴影的强度是光线的shadow强度参数*联级阴影强度
+    data.tileIndex = _DirectionalLightShadowData[lightIndex].y +shadowData.cascadeIndex;
+    data.normalBias = _DirectionalLightShadowData[lightIndex].z;
     return data;
 }
 
-Light GetDirectionalLight () {
+/*Light GetDirectionalLight () {
     Light light;
     light.color = 1.0;
     light.direction = float3(0.0, 1.0, 0.0);
     return light;
-}
+}*/
 
-Light GetDirectionalLight (int index, Surface surfaceWS) {
+Light GetDirectionalLight (int index, Surface surfaceWS,ShadowData shadowData) {
     Light light;
     light.color = _DirectionalLightColors[index].rgb;
     light.direction = _DirectionalLightDirections[index].xyz;
-    DirectionalShadowData shadowData = GetDirectionalShadowData(index);
-    light.attenuation = GetDirectionalShadowAttenuation(shadowData, surfaceWS);
+    
+    DirectionalShadowData dirshadowData = GetDirectionalShadowData(index,shadowData);
+    light.attenuation = GetDirectionalShadowAttenuation(dirshadowData,shadowData,surfaceWS);
+    //light.attenuation = shadowData.cascadeIndex * 0.25;
     return light;
 }
 

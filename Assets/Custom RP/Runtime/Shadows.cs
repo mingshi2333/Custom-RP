@@ -13,11 +13,20 @@ public class Shadows
     private static int dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas");//阴影绘制图集
 
     private static int dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices");//着色器阴影矩阵标志
+    private static int cascadeCountId = Shader.PropertyToID("_CascadeCount");//联级计数
+
+    private static int cascadeCullingSpheresId = Shader.PropertyToID("_CascadeCullingSpheres"),
+        cascadeDataId = Shader.PropertyToID("_CascadeData");
+    private static int shadowDistanceId = Shader.PropertyToID("_ShadowDistance"),
+        shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade");
     private static Matrix4x4[] dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount*maxCascades];//静态阴影矩阵*联机阴影层数
+    private static Vector4[] cascadeCullingSpheres = new Vector4[maxCascades];//
+    private static Vector4[] cascadeData = new Vector4[maxCascades];
 
     struct ShadowedDirectionalLight
     {
         public int visibleLightIndex;
+        public float slopeScaleBias;
     }
 
     private ShadowedDirectionalLight[] ShadowedDirectionalLights =
@@ -75,6 +84,9 @@ public class Shadows
         {
             RenderDirectionalShadows(i,split,tileSize);
         }
+        //buffer.SetGlobalFloat(shadowDistanceId, settings.maxDistance);//传递最大阴影采样距离
+        float f = 1f - settings.directional.cascadeFade;//保证比例相同
+        buffer.SetGlobalVector(shadowDistanceFadeId,new Vector4(1/settings.maxDistance,1f/settings.distanceFade,1f/(1f-f*f)));
         buffer.EndSample(bufferName);
         ExecuteBuffer();
     }
@@ -98,6 +110,10 @@ public class Shadows
             out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix,
             out ShadowSplitData splitData
         ); //2 3 4 参数控制了阴影联机   输出参数 视图矩阵 投影矩阵 shadowsplitdata参数
+        if (index == 0)
+        {
+            SetCascadeData(i, splitData.cullingSphere, tileSize);
+        }
 
         shadowSettings.splitData = splitData;
         int tileIndex = tileOffset + i;
@@ -106,11 +122,20 @@ public class Shadows
 
         dirShadowMatrices[tileIndex] =
             ConvertToAtlasMatrix(projectionMatrix * viewMatrix, SetTileViewport(tileIndex, split, tileSize), split); //
-
+        
+        buffer.SetGlobalInt(cascadeCountId, settings.directional.cascadeCount);
+        buffer.SetGlobalVectorArray(
+            cascadeCullingSpheresId, cascadeCullingSpheres
+        );
+        buffer.SetGlobalVectorArray(cascadeDataId,cascadeData);
+        
         buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
         buffer.SetGlobalMatrixArray(dirShadowMatricesId, dirShadowMatrices);
+        //buffer.SetGlobalDepthBias(0f,3f);//bias 是一个非常小的数字的倍数， slopeBias是梯度
+        buffer.SetGlobalDepthBias(0f,light.slopeScaleBias);
         ExecuteBuffer();
         context.DrawShadows(ref shadowSettings);
+        buffer.SetGlobalDepthBias(0f, 0f);
     }
 }
 /// <summary>
@@ -142,16 +167,16 @@ public class Shadows
     /// </summary>
     /// <param name="light"></param>
     /// <param name="visibleLightIndex"></param>
-    public Vector2 ReserveDirectionalShadows(Light light, int visibleLightIndex)
+    public Vector3 ReserveDirectionalShadows(Light light, int visibleLightIndex)
     {
         //增加条件 如果灯光设置为无阴影 或者强度不大于0 他就该没有阴影  最后一个条件是判别该光是否影响剔除范围内的物体
         if (ShadowedDirectionalLightCount < maxShadowedDirectionalLightCount&&light.shadows!=LightShadows.None&&light.shadowStrength>0f&&cullingResults.GetShadowCasterBounds(visibleLightIndex,out Bounds b))
         {
             ShadowedDirectionalLights[ShadowedDirectionalLightCount] = new ShadowedDirectionalLight
-                { visibleLightIndex = visibleLightIndex };
-            return new Vector2(light.shadowStrength,settings.directional.cascadeCount*ShadowedDirectionalLightCount++);
+                { visibleLightIndex = visibleLightIndex ,slopeScaleBias = light.shadowBias};
+            return new Vector3(light.shadowStrength,settings.directional.cascadeCount*ShadowedDirectionalLightCount++,light.shadowNormalBias);
         }
-        return Vector2.zero;
+        return Vector3.zero;
     }
 /// <summary>
 /// 我们可以调整渲染视口到单个tile，计算偏移量，然后计算视口
@@ -194,6 +219,22 @@ public class Shadows
         }
         return m;
     }
-    
+/// <summary>
+/// 在第一次遍历的时候就设置好的参数
+/// </summary>
+/// <param name="index"></param>
+/// <param name="cullingSphere"></param>
+/// <param name="tileSize"></param>
+    void SetCascadeData(int index, Vector4 cullingSphere, float tileSize)
+    {
+        float texelSize = 2f * cullingSphere.w / tileSize;//单个纹理大小的偏移量，不过最坏的情况是偏移一个正方形像素的对角线√2.
+        cullingSphere.w *= cullingSphere.w;
+        cascadeCullingSpheres[index] = cullingSphere;
+        cascadeData[index] = new Vector4(
+            1f / cullingSphere.w,
+            texelSize* 1.4142136f
+        );
+    }
+
 
 }
