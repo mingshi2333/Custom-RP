@@ -82,6 +82,7 @@ float4 LitPassFragment  (Varyings input) : SV_TARGET
     surface.alpha  = base.a;
     surface.metallic  = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_Metallic);
     surface.smoothness = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_Smoothness);
+    surface.dither = InterleavedGradientNoise(input.positionCS.xy,0);
     surface.depth = -TransformWorldToView(input.positionWS).z;
 
     #if defined(_PREMULTIPLY_ALPHA)
@@ -91,7 +92,7 @@ float4 LitPassFragment  (Varyings input) : SV_TARGET
     #endif
     
     
-    #if defined(_CLIPPING)
+    #if defined(_SHADOWS_CLIP)
     clip(base.a- UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,_Cutoff));
     #endif
     float3 color = GetLighting(surface,brdf);

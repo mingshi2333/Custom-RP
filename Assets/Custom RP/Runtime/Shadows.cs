@@ -16,7 +16,8 @@ public class Shadows
     private static int cascadeCountId = Shader.PropertyToID("_CascadeCount");//联级计数
 
     private static int cascadeCullingSpheresId = Shader.PropertyToID("_CascadeCullingSpheres"),
-        cascadeDataId = Shader.PropertyToID("_CascadeData");
+        cascadeDataId = Shader.PropertyToID("_CascadeData"),
+        shadowAtlasSizeId = Shader.PropertyToID("_ShadowAtlasSize");
     private static int shadowDistanceId = Shader.PropertyToID("_ShadowDistance"),
         shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade");
     private static Matrix4x4[] dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount*maxCascades];//静态阴影矩阵*联机阴影层数
@@ -27,7 +28,24 @@ public class Shadows
     {
         public int visibleLightIndex;
         public float slopeScaleBias;
+        public float nearPlaneOffset;
+        
     }
+    /// <summary>
+    /// pcf选择
+    /// </summary>
+    static string[] directionalFilterKeywords = {
+        "_DIRECTIONAL_PCF3",
+        "_DIRECTIONAL_PCF5",
+        "_DIRECTIONAL_PCF7",
+    };
+    /// <summary>
+    /// 阴影选择
+    /// </summary>
+    static string[] cascadeBlendKeywords = {
+        "_CASCADE_BLEND_SOFT",
+        "_CASCADE_BLEND_DITHER"
+    };
 
     private ShadowedDirectionalLight[] ShadowedDirectionalLights =
         new ShadowedDirectionalLight[maxShadowedDirectionalLightCount];
@@ -87,6 +105,12 @@ public class Shadows
         //buffer.SetGlobalFloat(shadowDistanceId, settings.maxDistance);//传递最大阴影采样距离
         float f = 1f - settings.directional.cascadeFade;//保证比例相同
         buffer.SetGlobalVector(shadowDistanceFadeId,new Vector4(1/settings.maxDistance,1f/settings.distanceFade,1f/(1f-f*f)));
+        //SetKeywords();
+        SetKeywords(directionalFilterKeywords,(int)settings.directional.filter-1);
+        SetKeywords(cascadeBlendKeywords,(int)settings.directional.cascadeBlend-1);
+        
+        buffer.SetGlobalVector(
+            shadowAtlasSizeId, new Vector4(atlasSize, 1f / atlasSize));
         buffer.EndSample(bufferName);
         ExecuteBuffer();
     }
@@ -103,10 +127,14 @@ public class Shadows
     int cascadeCount = settings.directional.cascadeCount;
     int tileOffset = index * cascadeCount;
     Vector3 ratios = settings.directional.CascadeRatios;
+    
+    float cullingFactor =
+        Mathf.Max(0f, 0.8f - settings.directional.cascadeFade);
+    
     for (int i = 0; i < cascadeCount; i++)
     {
         cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(
-            light.visibleLightIndex, i, cascadeCount, ratios, tileSize, 0f,
+            light.visibleLightIndex, i, cascadeCount, ratios, tileSize, light.nearPlaneOffset,
             out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix,
             out ShadowSplitData splitData
         ); //2 3 4 参数控制了阴影联机   输出参数 视图矩阵 投影矩阵 shadowsplitdata参数
@@ -115,6 +143,7 @@ public class Shadows
             SetCascadeData(i, splitData.cullingSphere, tileSize);
         }
 
+        splitData.shadowCascadeBlendCullingFactor = cullingFactor;//[这个参数是0-1] 0值为不剔除，大点剔除多，如果可以保证它们的结果总是被较小的级联覆盖，那么尝试从较大的级联中剔除一些阴影投射是有意义的。
         shadowSettings.splitData = splitData;
         int tileIndex = tileOffset + i;
 
@@ -173,7 +202,7 @@ public class Shadows
         if (ShadowedDirectionalLightCount < maxShadowedDirectionalLightCount&&light.shadows!=LightShadows.None&&light.shadowStrength>0f&&cullingResults.GetShadowCasterBounds(visibleLightIndex,out Bounds b))
         {
             ShadowedDirectionalLights[ShadowedDirectionalLightCount] = new ShadowedDirectionalLight
-                { visibleLightIndex = visibleLightIndex ,slopeScaleBias = light.shadowBias};
+                { visibleLightIndex = visibleLightIndex ,slopeScaleBias = light.shadowBias,nearPlaneOffset = light.shadowNearPlane};
             return new Vector3(light.shadowStrength,settings.directional.cascadeCount*ShadowedDirectionalLightCount++,light.shadowNormalBias);
         }
         return Vector3.zero;
@@ -228,12 +257,31 @@ public class Shadows
     void SetCascadeData(int index, Vector4 cullingSphere, float tileSize)
     {
         float texelSize = 2f * cullingSphere.w / tileSize;//单个纹理大小的偏移量，不过最坏的情况是偏移一个正方形像素的对角线√2.
+        float filterSize = texelSize * ((float)settings.directional.filter + 1f);
+        cullingSphere.w -= filterSize;
         cullingSphere.w *= cullingSphere.w;
         cascadeCullingSpheres[index] = cullingSphere;
         cascadeData[index] = new Vector4(
             1f / cullingSphere.w,
-            texelSize* 1.4142136f
+            filterSize* 1.4142136f
         );
+    }
+/// <summary>
+/// 为buffer设置keyword
+/// </summary>
+/// <param name="keywords"></param>
+/// <param name="enabledIndex"></param>
+    void SetKeywords (string[] keywords,int enabledIndex) {
+        //int enabledIndex = (int)settings.directional.filter - 1;//枚举序号，序号从-1开始
+        //Debug.Log(enabledIndex); 从-1是默认值
+        for (int i = 0; i < keywords.Length; i++) {
+            if (i == enabledIndex) {
+                buffer.EnableShaderKeyword(keywords[i]);
+            }
+            else {
+                buffer.DisableShaderKeyword(keywords[i]);
+            }
+        }
     }
 
 

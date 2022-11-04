@@ -39,12 +39,14 @@ Varyings ShadowCasterPassVertex(Attributes input)
 
     float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);//汇入ST
     output.baseUV = input.baseUV * baseST.xy + baseST.zw;//修改UV
+    ///把clip限制近平面
+    ///UNITY_REVERSED_Z是判断有没有z反转的，dx为1，gl为0，UNITY_NEAR_CLIP_VALUE在dx中是1
     #if UNITY_REVERSED_Z
     output.positionCS.z =
         min(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
     #else
     output.positionCS.z =
-        max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
+        max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);//把clip限制近平面
     #endif
     return output;
 }
@@ -55,9 +57,13 @@ void ShadowCasterPassFragment(Varyings input)
     float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV);//采样贴图
     float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor);//汇入基础颜色
     float4 base = baseMap * baseColor;
-    #if defined(_CLIPPING)
-    clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff));//裁剪
+    #if defined(_SHADOWS_CLIP)
+        clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff));//裁剪
+    #elif defined(_SHADOWS_DITHER)
+        float dither = InterleavedGradientNoise(input.positionCS.xy, 0);
+        clip(base.a - dither);
     #endif
+    
     
 }
 #endif
