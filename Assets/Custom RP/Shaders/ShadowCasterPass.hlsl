@@ -1,7 +1,7 @@
 ﻿#ifndef CUSTOM_LIT_PASS_INCLUDED
 #define CUSTOM_LIT_PASS_INCLUDED
 //汇入函数库
-#include "../ShaderLibrary/Common.hlsl"
+/*#include "../ShaderLibrary/Common.hlsl"
 
 TEXTURE2D(_BaseMap);
 SAMPLER(sampler_BaseMap);
@@ -10,7 +10,7 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)//放入材质缓冲区
 UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST)
 UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)
 UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff)
-UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)//放入材质缓冲区结束
+UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)//放入材质缓冲区结束*/
 
 //定义汇入模型数据
 struct Attributes
@@ -37,8 +37,8 @@ Varyings ShadowCasterPassVertex(Attributes input)
     float3 positionWS = TransformObjectToWorld(input.positionOS);//从模型空间到世界空间
     output.positionCS = TransformWorldToHClip(positionWS);//从世界空间到裁剪空间
 
-    float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);//汇入ST
-    output.baseUV = input.baseUV * baseST.xy + baseST.zw;//修改UV
+    //float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);//汇入ST
+   //output.baseUV = input.baseUV * baseST.xy + baseST.zw;//修改UV
     ///把clip限制近平面
     ///UNITY_REVERSED_Z是判断有没有z反转的，dx为1，gl为0，UNITY_NEAR_CLIP_VALUE在dx中是1
     #if UNITY_REVERSED_Z
@@ -54,11 +54,11 @@ Varyings ShadowCasterPassVertex(Attributes input)
 void ShadowCasterPassFragment(Varyings input)
 {
     UNITY_SETUP_INSTANCE_ID(input);//实例化
-    float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV);//采样贴图
-    float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor);//汇入基础颜色
-    float4 base = baseMap * baseColor;
+    //float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV);//采样贴图
+    //float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor);//汇入基础颜色
+    float4 base = GetBase(input.baseUV);
     #if defined(_SHADOWS_CLIP)
-        clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff));//裁剪
+        clip(base.a - GetCutoff(input.baseUV));//裁剪
     #elif defined(_SHADOWS_DITHER)
         float dither = InterleavedGradientNoise(input.positionCS.xy, 0);
         clip(base.a - dither);
