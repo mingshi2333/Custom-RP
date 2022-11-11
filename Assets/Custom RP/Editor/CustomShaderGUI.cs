@@ -22,6 +22,7 @@ public class CustomShaderGUI : ShaderGUI
         editor = materialEditor;
         materials = materialEditor.targets;
         this.properties = properties;
+        BakedEmission();//烘培光选项
         EditorGUILayout.Space();
         showPresets = EditorGUILayout.Foldout(showPresets, "Presets", true);
         if (showPresets) {
@@ -33,6 +34,21 @@ public class CustomShaderGUI : ShaderGUI
         
         if (EditorGUI.EndChangeCheck()) {
             SetShadowCasterPass();
+            CopyLightMappingProperties();
+        }
+    }
+    void CopyLightMappingProperties () {
+        MaterialProperty mainTex = FindProperty("_MainTex", properties, false);
+        MaterialProperty baseMap = FindProperty("_BaseMap", properties, false);
+        if (mainTex != null && baseMap != null) {
+            mainTex.textureValue = baseMap.textureValue;
+            mainTex.textureScaleAndOffset = baseMap.textureScaleAndOffset;
+        }
+        MaterialProperty color = FindProperty("_Color", properties, false);
+        MaterialProperty baseColor =
+            FindProperty("_BaseColor", properties, false);
+        if (color != null && baseColor != null) {
+            color.colorValue = baseColor.colorValue;
         }
     }
     void SetShadowCasterPass () {
@@ -134,6 +150,18 @@ public class CustomShaderGUI : ShaderGUI
             return true;
         }
         return false;
+    }
+
+    void BakedEmission()
+    {
+        EditorGUI.BeginChangeCheck();
+        editor.LightmapEmissionProperty();
+        if (EditorGUI.EndChangeCheck()) {
+            foreach (Material m in editor.targets) {
+                m.globalIlluminationFlags &=
+                    ~MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+            }
+        }
     }
 
     void OpaquePreset()

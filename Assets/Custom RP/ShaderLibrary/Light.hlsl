@@ -1,6 +1,14 @@
 ﻿#ifndef CUSTOM_LIGHT_INCLUDED
 #define CUSTOM_LIGHT_INCLUDED
 
+#define MAX_DIRECTIONAL_LIGHT_COUNT 4
+CBUFFER_START(_CustomLight)
+    int _DirectionalLightCount;
+    float4 _DirectionalLightColors[MAX_DIRECTIONAL_LIGHT_COUNT];
+    float4 _DirectionalLightDirections[MAX_DIRECTIONAL_LIGHT_COUNT];
+    float4 _DirectionalLightShadowData[MAX_DIRECTIONAL_LIGHT_COUNT];
+CBUFFER_END
+
 struct Light {
     float3 color;
     float3 direction;
@@ -9,7 +17,6 @@ struct Light {
 
 DirectionalShadowData GetDirectionalShadowData (int lightIndex,ShadowData shadowData) {
     DirectionalShadowData data;
-    //data.strength = _DirectionalLightShadowData[lightIndex].x;
     data.strength = _DirectionalLightShadowData[lightIndex].x*shadowData.strength;//阴影的强度是光线的shadow强度参数*联级阴影强度
     data.tileIndex = _DirectionalLightShadowData[lightIndex].y +shadowData.cascadeIndex;
     data.normalBias = _DirectionalLightShadowData[lightIndex].z;

@@ -42,5 +42,4 @@ float3 GetEmission (float2 baseUV)
     float4 color = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _EmissionColor);
     return map.rgb * color.rgb;
 }
-
 #endif

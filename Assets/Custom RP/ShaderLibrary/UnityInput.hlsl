@@ -6,7 +6,7 @@ CBUFFER_START(UnityPerDraw)
 	float4x4 unity_WorldToObject;
 	float4 unity_LODFade;
 	float3 _WorldSpaceCameraPos;//相机位置
-	real4 unity_WorldTransformParams;
+	float4  unity_WorldTransformParams;
 	float4 unity_LightmapST;
 	float4 unity_DynamicLightmapST;
 

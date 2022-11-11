@@ -48,6 +48,7 @@ Varyings ShadowCasterPassVertex(Attributes input)
     output.positionCS.z =
         max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);//把clip限制近平面
     #endif
+    output.baseUV = TransformBaseUV(input.baseUV);
     return output;
 }
 //片元着色器

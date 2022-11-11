@@ -3,12 +3,7 @@
 
 #define MAX_DIRECTIONAL_LIGHT_COUNT 4
 
-CBUFFER_START(_CustomLight)
-    int _DirectionalLightCount;
-    float4 _DirectionalLightColors[MAX_DIRECTIONAL_LIGHT_COUNT];
-    float4 _DirectionalLightDirections[MAX_DIRECTIONAL_LIGHT_COUNT];
-    float4 _DirectionalLightShadowData[MAX_DIRECTIONAL_LIGHT_COUNT];
-CBUFFER_END
+
 #include "../ShaderLibrary/Surface.hlsl"
 #include  "../ShaderLibrary/Shadows.hlsl"
 #include "../ShaderLibrary/Light.hlsl"
@@ -95,8 +90,9 @@ float4 LitPassFragment  (Varyings input) : SV_TARGET
     #if defined(_SHADOWS_CLIP)
     clip(base.a- GetCutoff(input.baseUV));
     #endif
+    
     float3 color = GetLighting(surface,brdf,gi);
-    color +=GetEmission(input.baseUV);
+    color += GetEmission(input.baseUV);
     return float4(color,surface.alpha);
 
 }
