@@ -6,7 +6,7 @@
 TEXTURE2D(unity_Lightmap);
 SAMPLER(samplerunity_Lightmap);
 
-TEXTURE3D_FLOAT(unity_ProbeVolumeSH);
+TEXTURE3D_FLOAT(unity_ProbeVolumeSH);//lppv的3d纹理
 SAMPLER(samplerunity_ProbeVolumeSH);
 
 #if defined(LIGHTMAP_ON)

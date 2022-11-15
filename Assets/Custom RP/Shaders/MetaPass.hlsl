@@ -25,7 +25,7 @@ Varyings MetaPassVertex (Attributes input) {
     Varyings output;
     input.positionOS.xy =
         input.lightMapUV * unity_LightmapST.xy + unity_LightmapST.zw;
-    input.positionOS.z = input.positionOS.z > 0.0 ? FLT_MIN : 0.0;
+    input.positionOS.z = input.positionOS.z > 0.0 ? FLT_MIN : 0.0;//把lightmap当城物体object空间，由于没有第三维，因此限制为0
     output.positionCS = TransformWorldToHClip(input.positionOS);
     output.baseUV = TransformBaseUV(input.baseUV);
     return output;
@@ -45,7 +45,7 @@ float4 MetaPassFragment (Varyings input) : SV_TARGET {
         meta.rgb += brdf.specular * brdf.roughness * 0.5;
         meta.rgb = min(
             PositivePow(meta.rgb, unity_OneOverOutputBoost), unity_MaxOutputValue
-        );
+        );//unity_MetaFragmentControl.x 设置漫反射光的
     }
     else if (unity_MetaFragmentControl.y) {
 

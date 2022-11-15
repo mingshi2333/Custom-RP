@@ -22,7 +22,7 @@ public class CustomShaderGUI : ShaderGUI
         editor = materialEditor;
         materials = materialEditor.targets;
         this.properties = properties;
-        BakedEmission();//烘培光选项
+        BakedEmission();//烘培自发光选项
         EditorGUILayout.Space();
         showPresets = EditorGUILayout.Foldout(showPresets, "Presets", true);
         if (showPresets) {
@@ -155,12 +155,12 @@ public class CustomShaderGUI : ShaderGUI
     void BakedEmission()
     {
         EditorGUI.BeginChangeCheck();
-        editor.LightmapEmissionProperty();
+        editor.LightmapEmissionProperty();//draw lightmap的选项 none realtime baked
         if (EditorGUI.EndChangeCheck()) {
             foreach (Material m in editor.targets) {
                 m.globalIlluminationFlags &=
                     ~MaterialGlobalIlluminationFlags.EmissiveIsBlack;
-            }
+            }//默认开启，开始此项自动优化为不发光，关闭此项烘培emission颜色
         }
     }
 
