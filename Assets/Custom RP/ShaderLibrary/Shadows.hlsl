@@ -30,11 +30,23 @@ CBUFFER_START(_CustomShadows)
     float4 _ShadowAtlasSize; 
 CBUFFER_END
 
+/**
+ * \brief distance表示是否启用，shadows指向是哪个阴影
+ */
+struct ShadowMask
+{
+    bool always;
+    bool distance;
+    float4 shadows;
+    
+};
+
 struct DirectionalShadowData
 {
     float strength;
     int tileIndex;
     float3 normalBias;
+    int shadowMaskChannel;
 };
 
 struct ShadowData
@@ -42,6 +54,7 @@ struct ShadowData
     int cascadeIndex;
     float cascadeBlend;
     float strength;
+    ShadowMask shadowMask;
 };
 float FadedShadowStrength(float distance,float scale,float fade)
 {
@@ -50,6 +63,12 @@ float FadedShadowStrength(float distance,float scale,float fade)
 ShadowData GetShadowData(Surface surfaceWS)
 {
     ShadowData data;
+    //初始化默认不使用
+    data.shadowMask.always = false;
+    data.shadowMask.distance = false;
+    data.shadowMask.shadows = 1.0;
+    
+    
     data.cascadeBlend = 1.0;
     data.strength = FadedShadowStrength(
         surfaceWS.depth, _ShadowDistanceFade.x, _ShadowDistanceFade.y
@@ -112,21 +131,8 @@ float FilterDirectionalShadow (float3 positionSTS) {
 }
 
 
-/**
- * \brief 
- * \param data 储存阴影数组的矩阵
- * \param surfaceWS 世界空间坐标
- * \return 
- */
-float GetDirectionalShadowAttenuation (DirectionalShadowData directional,ShadowData global, Surface surfaceWS) {
-    ///设置是否接受阴影
-    #if !defined(_RECEIVE_SHADOWS)
-        return 1.0;
-    #endif
-    if (directional.strength <= 0.0)
-    {
-        return 1.0;
-    }
+float GetCascadeShadow(DirectionalShadowData directional,ShadowData global,Surface surfaceWS)
+{
     float3 normalBias = surfaceWS.normal * directional.normalBias*_CascadeData[global.cascadeIndex].y;
     float3 positionSTS = mul(
         _DirectionalShadowMatrices[directional.tileIndex],
@@ -146,8 +152,73 @@ float GetDirectionalShadowAttenuation (DirectionalShadowData directional,ShadowD
             FilterDirectionalShadow(positionSTS), shadow, global.cascadeBlend
         );
     }//阴影之间过度
+    return shadow;
+}
+float GetBakedShadow(ShadowMask mask,int channel)
+{
+    float shadow = 1.0;
+    if(mask.distance||mask.always)
+    {
+        if(channel>=0)
+        {
+            shadow = mask.shadows[channel];//选择通道
+        }
+    }
+    return shadow;
+}
+
+float GetBakedShadow (ShadowMask mask,int channel, float strength) {
+    if (mask.always || mask.distance) {
+        return lerp(1.0, GetBakedShadow(mask,channel), abs(strength));
+    }
+    return 1.0;
+}
+float MixBakedAndRealtimeShadows(ShadowData global,float shadow,int shadowMaskChannel, float strength)
+{
+    float baked = GetBakedShadow(global.shadowMask,shadowMaskChannel);
+    if(global.shadowMask.always)
+    {
+        shadow = lerp(1.0,shadow,global.strength);
+        shadow = min(baked,shadow);
+        return lerp(1.0,shadow,strength);
+    }
     
-    return lerp(1.0, shadow, directional.strength);//黑的地方是阴影也就是0
+    if(global.shadowMask.distance)
+    {
+        shadow = lerp(baked,shadow,global.strength);
+        return lerp(1.0,shadow,strength);
+    }
+    return lerp(1.0,shadow,strength*global.strength);
+}
+/**
+ * \brief 
+ * \param data 储存阴影数组的矩阵
+ * \param surfaceWS 世界空间坐标
+ * \return 
+ */
+float GetDirectionalShadowAttenuation (DirectionalShadowData directional,ShadowData global, Surface surfaceWS) {
+
+    float shadow;
+    ///设置是否接受阴影
+    #if !defined(_RECEIVE_SHADOWS)
+        return 1.0;
+    #endif
+    if (directional.strength *global.strength <= 0.0)
+    {
+        shadow = GetBakedShadow(global.shadowMask,directional.shadowMaskChannel, directional.strength);
+    }
+    if(directional.strength<=0.0)
+    {
+        shadow = 1.0;
+    }
+    else
+    {
+        shadow = GetCascadeShadow(directional,global,surfaceWS);
+        shadow = MixBakedAndRealtimeShadows(global,shadow,directional.shadowMaskChannel, directional.strength);
+        shadow = lerp(1.0, shadow, directional.strength);//黑的地方是阴影也就是0
+        
+    }
+    return shadow;
 }
 
 

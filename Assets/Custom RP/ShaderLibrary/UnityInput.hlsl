@@ -8,6 +8,8 @@ CBUFFER_START(UnityPerDraw)
 	float3 _WorldSpaceCameraPos;//相机位置
 	float4  unity_WorldTransformParams;
 
+	float4 unity_ProbesOcclusion;
+
 ///光照贴图uv，由unity自动生成，定义了一个纹理展开，有自己的空间专门的缩放平移
 	float4 unity_LightmapST;
 	float4 unity_DynamicLightmapST;//为了srp批处理兼容

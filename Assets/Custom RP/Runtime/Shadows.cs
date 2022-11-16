@@ -20,6 +20,9 @@ public class Shadows
         shadowAtlasSizeId = Shader.PropertyToID("_ShadowAtlasSize");
     private static int shadowDistanceId = Shader.PropertyToID("_ShadowDistance"),
         shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade");
+
+    private static string[] shadowMaskKeywords = { "_SHADOW_MASK_ALWAYS","_SHADOW_MASK_DISTANCE" };//shadowMask关键字
+    private bool useShadowMask;
     private static Matrix4x4[] dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount*maxCascades];//静态阴影矩阵*联机阴影层数
     private static Vector4[] cascadeCullingSpheres = new Vector4[maxCascades];//
     private static Vector4[] cascadeData = new Vector4[maxCascades];
@@ -72,6 +75,12 @@ public class Shadows
             //
             buffer.GetTemporaryRT(dirShadowAtlasId,1,1,32,FilterMode.Bilinear,RenderTextureFormat.Shadowmap);
         }
+        
+        buffer.BeginSample(bufferName);
+        SetKeywords(shadowMaskKeywords,useShadowMask? QualitySettings.shadowmaskMode==ShadowmaskMode.Shadowmask?0:1:-1);//启用关键词
+        //SetKeywords(shadowMaskKeywords,useShadowMask?0:-1);//启用关键词
+        buffer.EndSample(bufferName);
+        ExecuteBuffer();
     }
 /// <summary>
 /// 渲染直射光
@@ -184,6 +193,10 @@ public class Shadows
         this.cullingResults = cullingResults;
         this.settings = settings;
         ShadowedDirectionalLightCount = 0;//设置环节把计数设置为0
+        
+        //shadowmask
+        useShadowMask = false;
+
     }
 
     void ExecuteBuffer()
@@ -196,16 +209,33 @@ public class Shadows
     /// </summary>
     /// <param name="light"></param>
     /// <param name="visibleLightIndex"></param>
-    public Vector3 ReserveDirectionalShadows(Light light, int visibleLightIndex)
+    public Vector4 ReserveDirectionalShadows(Light light, int visibleLightIndex)
     {
         //增加条件 如果灯光设置为无阴影 或者强度不大于0 他就该没有阴影  最后一个条件是判别该光是否影响剔除范围内的物体
-        if (ShadowedDirectionalLightCount < maxShadowedDirectionalLightCount&&light.shadows!=LightShadows.None&&light.shadowStrength>0f&&cullingResults.GetShadowCasterBounds(visibleLightIndex,out Bounds b))
+        //修改:在没有realtimeshadow的时候也启动shadowmask，方便代替
+        //if (ShadowedDirectionalLightCount < maxShadowedDirectionalLightCount&&light.shadows!=LightShadows.None&&light.shadowStrength>0f&&cullingResults.GetShadowCasterBounds(visibleLightIndex,out Bounds b))
+        if (ShadowedDirectionalLightCount < maxShadowedDirectionalLightCount&&light.shadows!=LightShadows.None&&light.shadowStrength>0f)
         {
+            float maskChannel = -1;
+            LightBakingOutput lightBaking = light.bakingOutput;
+            if (lightBaking.lightmapBakeType == LightmapBakeType.Mixed &&
+                lightBaking.mixedLightingMode == MixedLightingMode.Shadowmask)
+            {
+                useShadowMask = true;
+                maskChannel = lightBaking.occlusionMaskChannel;
+            }
+            //shadowmask代替条件
+            if (!cullingResults.GetShadowCasterBounds(
+                    visibleLightIndex, out Bounds b
+                )) {
+                return new Vector4(-light.shadowStrength, 0f, 0f,maskChannel);//我们的shadow对阴影贴图采样是强度大于0，这里不让他工作直接设置为负值
+            }
+            
             ShadowedDirectionalLights[ShadowedDirectionalLightCount] = new ShadowedDirectionalLight
                 { visibleLightIndex = visibleLightIndex ,slopeScaleBias = light.shadowBias,nearPlaneOffset = light.shadowNearPlane};
-            return new Vector3(light.shadowStrength,settings.directional.cascadeCount*ShadowedDirectionalLightCount++,light.shadowNormalBias);
+            return new Vector4(light.shadowStrength,settings.directional.cascadeCount*ShadowedDirectionalLightCount++,light.shadowNormalBias,maskChannel);
         }
-        return Vector3.zero;
+        return new Vector4(0f,0f,0f,-1f);
     }
 /// <summary>
 /// 我们可以调整渲染视口到单个tile，计算偏移量，然后计算视口

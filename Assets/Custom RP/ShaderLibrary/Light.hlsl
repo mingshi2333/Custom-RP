@@ -17,9 +17,10 @@ struct Light {
 
 DirectionalShadowData GetDirectionalShadowData (int lightIndex,ShadowData shadowData) {
     DirectionalShadowData data;
-    data.strength = _DirectionalLightShadowData[lightIndex].x*shadowData.strength;//阴影的强度是光线的shadow强度参数*联级阴影强度
+    data.strength = _DirectionalLightShadowData[lightIndex].x;//shadowData.strength;//阴影的强度是光线的shadow强度参数*联级阴影强度
     data.tileIndex = _DirectionalLightShadowData[lightIndex].y +shadowData.cascadeIndex;
     data.normalBias = _DirectionalLightShadowData[lightIndex].z;
+    data.shadowMaskChannel = _DirectionalLightShadowData[lightIndex].w;
     return data;
 }
 

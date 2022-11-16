@@ -14,6 +14,10 @@
 #define UNITY_MATRIX_I_V unity_MatrixInvV
 #define UNITY_PREV_MATRIX_I_M unity_PreWorldToObject
 
+//unity_ProbesOcclusion此参数只有在UnityInstancing定义了SHADOWS_SHADOWMASK时才会自动得到实例化，所以我们必须在头文件之前定义她
+#if defined(_SHADOW_MASK_DISTANCE)||defined(_SHADOW_MASK_ALWAYS)
+    #define SHADOWS_SHADOWMASK
+#endif
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/SpaceTransforms.hlsl"
