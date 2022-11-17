@@ -65,6 +65,12 @@ Varyings LitPassVertex (Attributes input)
 float4 LitPassFragment  (Varyings input) : SV_TARGET
 {
     UNITY_SETUP_INSTANCE_ID(input);
+
+    // #if defined(LOD_FADE_CROSSFADE)
+    //     return -unity_LODFade.x;
+    // #endif
+    ClipLOD(input.positionCS.xy,unity_LODFade.x);
+    
     float3 normal = normalize(input.normalWS);
 
     float4 base  = GetBase(input.baseUV);
@@ -78,7 +84,8 @@ float4 LitPassFragment  (Varyings input) : SV_TARGET
     surface.smoothness = GetSmoothness(input.baseUV);
     surface.dither = InterleavedGradientNoise(input.positionCS.xy,0);
     surface.depth = -TransformWorldToView(input.positionWS).z;
-    GI gi =GetGI(GI_FRAGMENT_DATA(input),surface);//采样lightmap
+    surface.fresnelStrength = GetFresnel(input.baseUV);
+    
 
     #if defined(_PREMULTIPLY_ALPHA)
     BRDF brdf = GetBRDF(surface, true);
@@ -86,7 +93,7 @@ float4 LitPassFragment  (Varyings input) : SV_TARGET
     BRDF brdf = GetBRDF(surface);
     #endif
     
-    
+    GI gi =GetGI(GI_FRAGMENT_DATA(input),surface,brdf);//采样lightmap
     #if defined(_SHADOWS_CLIP)
     clip(base.a- GetCutoff(input.baseUV));
     #endif

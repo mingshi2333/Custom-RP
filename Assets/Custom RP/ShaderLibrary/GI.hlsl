@@ -1,7 +1,6 @@
 ﻿#ifndef CUSTOM_GI_INCLUDED
 #define CUSTOM_GI_INCLUDED
 
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"
 
 TEXTURE2D(unity_Lightmap);
 SAMPLER(samplerunity_Lightmap);
@@ -28,6 +27,7 @@ SAMPLER(samplerunity_ProbeVolumeSH);
 
 struct GI {
 	float3 diffuse;
+	float3 specular;
 	ShadowMask shadowMask;
 };
 
@@ -98,9 +98,10 @@ float3 SampleLightProbe (Surface surfaceWS) {
 	#endif
 }
 
-GI GetGI (float2 lightMapUV, Surface surfaceWS) {
+GI GetGI (float2 lightMapUV, Surface surfaceWS,BRDF brdf) {
 	GI gi;
 	gi.diffuse = SampleLightMap(lightMapUV) + SampleLightProbe(surfaceWS);
+	gi.specular = SampleEnvironment(surfaceWS,brdf);
 	gi.shadowMask.always = false;
 	gi.shadowMask.distance = false;
 	gi.shadowMask.shadows  = 1.0;

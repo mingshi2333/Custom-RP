@@ -52,7 +52,7 @@ public partial class CameraRenderer
         var drawingSettings = new DrawingSettings(unlitShadeerTagId,sortingSettings)
         {
             enableDynamicBatching = useDynamicBatching,enableInstancing = useGPUInstancing,
-            perObjectData = PerObjectData.Lightmaps|PerObjectData.LightProbe|PerObjectData.LightProbeProxyVolume| PerObjectData.ShadowMask| PerObjectData.OcclusionProbe
+            perObjectData = PerObjectData.ReflectionProbes | PerObjectData.Lightmaps|PerObjectData.LightProbe|PerObjectData.LightProbeProxyVolume| PerObjectData.ShadowMask| PerObjectData.OcclusionProbe
         };//按照着色器以及距离排序    //后续参数可以配置   //光照贴图设置
         drawingSettings.SetShaderPassName(1,litShaderTagId);//插入支持的passtag，srpdefaultunlit是默认的，C
 

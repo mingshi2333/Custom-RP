@@ -12,6 +12,7 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
     UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff)
     UNITY_DEFINE_INSTANCED_PROP(float, _Metallic)
     UNITY_DEFINE_INSTANCED_PROP(float, _Smoothness)
+    UNITY_DEFINE_INSTANCED_PROP(float,_Fresnel)
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 float2 TransformBaseUV (float2 baseUV) {
@@ -42,4 +43,17 @@ float3 GetEmission (float2 baseUV)
     float4 color = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _EmissionColor);
     return map.rgb * color.rgb;
 }
+float GetFresnel(float2 baseUV)
+{
+    return 0.0;
+}
+//计算lod中间切换
+void ClipLOD(float2 positionCS,float fade)
+{
+    #if defined(LOD_FADE_CROSSFADE)
+        float dither=InterleavedGradientNoise(positionCS.xy, 0);
+        clip(fade + (fade < 0.0 ? dither : -dither));
+    #endif
+}
+
 #endif
