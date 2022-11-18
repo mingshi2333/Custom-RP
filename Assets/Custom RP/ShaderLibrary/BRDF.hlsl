@@ -11,6 +11,7 @@ SAMPLER(samplerunity_SpecCube0);
 struct BRDF {
     float3 diffuse;
     float3 specular;
+    float occlusion;
     float roughness;
     float perceptualRoughness;
     float fresnel;
@@ -69,7 +70,7 @@ float3 IndirectBRDF(Surface surface,BRDF brdf,float3 diffuse,float3 specular)
     reflection /= brdf.roughness*brdf.roughness+1.0;
     
     //return diffuse*brdf.diffuse+reflection;
-    return reflection;
+    return reflection*surface.occlusion;
 }
 
 #endif

@@ -57,10 +57,10 @@ void ShadowCasterPassFragment(Varyings input)
     UNITY_SETUP_INSTANCE_ID(input);//实例化
     
     ClipLOD(input.positionCS.xy,unity_LODFade.x);
-    
+    InputConfig config = GetInputConfig(input.baseUV);
     //float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV);//采样贴图
     //float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor);//汇入基础颜色
-    float4 base = GetBase(input.baseUV);
+    float4 base = GetBase(config);
     #if defined(_SHADOWS_CLIP)
         clip(base.a - GetCutoff(input.baseUV));//裁剪
     #elif defined(_SHADOWS_DITHER)
