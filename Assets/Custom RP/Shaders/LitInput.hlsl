@@ -141,7 +141,7 @@ float3 GetEmission (InputConfig c)
     float4 color =  INPUT_PROP(_EmissionColor);
     return map.rgb * color.rgb;
 }
-float GetFresnel(float2 baseUV)
+float GetFresnel(InputConfig c)
 {
     return INPUT_PROP(_Fresnel);
 }

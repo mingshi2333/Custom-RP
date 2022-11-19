@@ -117,7 +117,7 @@ float4 LitPassFragment  (Varyings input) : SV_TARGET
     surface.smoothness = GetSmoothness(config);
     surface.dither = InterleavedGradientNoise(input.positionCS.xy,0);
     surface.depth = -TransformWorldToView(input.positionWS).z;
-    surface.fresnelStrength = GetFresnel(input.baseUV);
+    surface.fresnelStrength = GetFresnel(config);
     
 
     #if defined(_PREMULTIPLY_ALPHA)
@@ -128,7 +128,7 @@ float4 LitPassFragment  (Varyings input) : SV_TARGET
     
     GI gi =GetGI(GI_FRAGMENT_DATA(input),surface,brdf);//采样lightmap
     #if defined(_SHADOWS_CLIP)
-    clip(base.a- GetCutoff(input.baseUV));
+    clip(base.a- GetCutoff(config));
     #endif
     
     float3 color = GetLighting(surface,brdf,gi);
