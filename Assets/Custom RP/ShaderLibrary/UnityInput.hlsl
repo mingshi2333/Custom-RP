@@ -8,6 +8,9 @@ CBUFFER_START(UnityPerDraw)
 	float3 _WorldSpaceCameraPos;//相机位置
 	float4  unity_WorldTransformParams;
 
+	real4 unity_LightData;//y分量传入的是灯光数量
+	real4 unity_LightIndices[2];//长度位2的数组，这两个向量的每个通道都包含一个灯光索引，所以每个物体最多支持八个。
+
 	float4 unity_ProbesOcclusion;
 
 ///光照贴图uv，由unity自动生成，定义了一个纹理展开，有自己的空间专门的缩放平移

@@ -8,20 +8,45 @@ public class Lighting
     private const string bufferName = "Lighting";
     private CommandBuffer buffer = new CommandBuffer() { name = bufferName };
     private const int maxDirLightCount = 4;
-
+    private const int maxOtherLightCount = 64;
+/// <summary>
+/// directional light parameters
+/// </summary>
     private static int dirLightCountId = Shader.PropertyToID("_DirectionalLightCount"),
         dirLightColorsId = Shader.PropertyToID("_DirectionalLightColors"),
         dirLightDirectionsId = Shader.PropertyToID("_DirectionalLightDirections"),
         dirLightShadowDataId = Shader.PropertyToID("_DirectionalLightShadowData");
 
-    private static Vector4[]
+private static Vector4[]
         dirLightColors = new Vector4[maxDirLightCount],
         dirLightDirections = new Vector4[maxDirLightCount],
         dirLightShadowData = new Vector4[maxDirLightCount];
 
+private static string lightsPerObjectKeyword = "_LIGHTS_PER_OBJECT";//perobject关键词
+    /// <summary>
+    /// other light settings parameters
+    /// </summary>
+    private static int
+        otherLightCountId = Shader.PropertyToID("_OtherLightCount"),
+        otherLightColorsId = Shader.PropertyToID("_OtherLightColors"),
+        otherLightPositionsId = Shader.PropertyToID("_OtherLightPositions"),
+        otherLightDirectionsId = Shader.PropertyToID("_OtherLightDirections"),
+        otherLightSpotAnglesId = Shader.PropertyToID("_OtherLightSpotAngles"),
+        otherLightShadowDataId = Shader.PropertyToID("_OtherLightShadowData");
+
+
+
+    private static Vector4[]
+        otherLightColors = new Vector4[maxOtherLightCount],
+        otherLightPositions = new Vector4[maxOtherLightCount],
+        otherLightDirections = new Vector4[maxOtherLightCount],
+        otherLightSpotAngles = new Vector4[maxOtherLightCount],
+        otherLightShadowData = new Vector4[maxOtherLightCount];
+
+
     private CullingResults cullingResults;//剔除摄像机影响不到的地方
     private Shadows shadows = new Shadows();
-    public void Setup(ScriptableRenderContext context,CullingResults cullingResults,ShadowSettings shadowSettings)
+    public void Setup(ScriptableRenderContext context,CullingResults cullingResults, ShadowSettings shadowSettings,bool useLightsPerObject)
     {
         this.cullingResults = cullingResults;
         buffer.BeginSample(bufferName);
@@ -30,39 +55,133 @@ public class Lighting
         shadows.Setup(context,cullingResults,shadowSettings);//
         
         //SetupDirectionalLight();
-        SetupLights();
+        SetupLights(useLightsPerObject);//useLightsPerObject创建物体的受灯光影响数组
         shadows.Render();
         buffer.EndSample(bufferName);
         context.ExecuteCommandBuffer(buffer);
         buffer.Clear();
     }
 
-    void SetupLights()
+    void SetupLights(bool useLightsPerObject)
     {
+        NativeArray<int> indexMap = useLightsPerObject ? cullingResults.GetLightIndexMap(Allocator.Temp) : default;//从剔除的结果中获取光的索引图。
         NativeArray<VisibleLight> visibleLights = cullingResults.visibleLights;//获取可见光源的数组
         int dirLightCount = 0;
-        for (int i = 0; i < visibleLights.Length; i++)
+        int otherLightCount = 0;
+        int i;
+        for (i = 0; i < visibleLights.Length; i++)
         {
+            int newIndex = -1;//物体的光照索引
             VisibleLight visibleLight = visibleLights[i];
-            SetupDirectionalLight(dirLightCount++,ref visibleLight);//直接引用，节省内存
-            if(dirLightCount>maxDirLightCount)
-                break;
+            // SetupDirectionalLight(dirLightCount++,ref visibleLight);//直接引用，节省内存
+            // if(dirLightCount>maxDirLightCount)
+            //     break;
+            switch (visibleLight.lightType)
+            {
+                case LightType.Directional:
+                    if (dirLightCount < maxDirLightCount)
+                    {
+                        SetupDirectionalLight(dirLightCount++,ref visibleLight);
+                    }
+                    break;
+                case LightType.Point:
+                    if (otherLightCount < maxOtherLightCount)
+                    {
+                        newIndex = otherLightCount;
+                        SetupPointLight(otherLightCount++,ref visibleLight);
+                    }
+                    break;
+                case LightType.Spot:
+                    if (otherLightCount < maxOtherLightCount)
+                    {
+                        newIndex = otherLightCount;
+                        SetupSpotLight(otherLightCount++,ref visibleLight);
+                    }
+                    break;
+            }
+
+            if (useLightsPerObject)
+            {
+                indexMap[i] = newIndex;
+            }
         }//遍历设置灯光，如果大于就退出
-        buffer.SetGlobalInt(dirLightCountId, visibleLights.Length);
-        buffer.SetGlobalVectorArray(dirLightColorsId, dirLightColors);
-        buffer.SetGlobalVectorArray(dirLightDirectionsId, dirLightDirections);
         
-        buffer.SetGlobalVectorArray(dirLightShadowDataId,dirLightShadowData);
-    }
+        if (useLightsPerObject)
+        {
+            for (; i < indexMap.Length; i++)
+            {
+                indexMap[i] = -1;
+            }
+            cullingResults.SetLightIndexMap(indexMap);
+            indexMap.Dispose();
+            Shader.EnableKeyword(lightsPerObjectKeyword);
+        }//消除所有不可见光的索引
+        else
+        {
+            Shader.DisableKeyword(lightsPerObjectKeyword);
+        }
+        
+        buffer.SetGlobalInt(dirLightCountId, visibleLights.Length);
+        if (dirLightCount > 0)
+        {
+            buffer.SetGlobalVectorArray(dirLightColorsId, dirLightColors);
+            buffer.SetGlobalVectorArray(dirLightDirectionsId, dirLightDirections);
+            buffer.SetGlobalVectorArray(dirLightShadowDataId, dirLightShadowData);
+        }
+        buffer.SetGlobalInt(otherLightCountId,otherLightCount);
+        if (otherLightCount > 0)
+        {
+            buffer.SetGlobalVectorArray(otherLightColorsId,otherLightColors);
+            buffer.SetGlobalVectorArray(otherLightPositionsId,otherLightPositions);
+            buffer.SetGlobalVectorArray(otherLightDirectionsId,otherLightDirections);//spot light 方向
+            buffer.SetGlobalVectorArray(otherLightSpotAnglesId,otherLightSpotAngles);
+            buffer.SetGlobalVectorArray(otherLightShadowDataId,otherLightShadowData);
+        }
+    }    
 
+     
     void SetupDirectionalLight(int index,ref VisibleLight visibleLight)
-    {
-        dirLightColors[index] = visibleLight.finalColor;
-        dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);//获取光源的超前方向
-        dirLightShadowData[index] = 
-                                shadows.ReserveDirectionalShadows(visibleLight.light,index);
+         {
+             dirLightColors[index] = visibleLight.finalColor;
+             dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);//获取光源的超前方向
+             dirLightShadowData[index] = 
+                                     shadows.ReserveDirectionalShadows(visibleLight.light,index);
+     
+         }
+    void SetupPointLight(int index, ref VisibleLight visibleLight)
+         {
+             otherLightColors[index] = visibleLight.finalColor;
+             Vector4 position = visibleLight.localToWorldMatrix.GetColumn(3);
+             position.w = 1f / Mathf.Max(visibleLight.range * visibleLight.range, 0.00001f);
+             otherLightPositions[index] = position;
+             otherLightSpotAngles[index] = new Vector4(0f, 1f);
+             
+             Light light = visibleLight.light;
+             otherLightShadowData[index] = shadows.ReserveOtherShadows(light, index);
+             
+         }
+    void SetupSpotLight (int index, ref VisibleLight visibleLight) 
+        {
+            otherLightColors[index] = visibleLight.finalColor;
+            Vector4 position = visibleLight.localToWorldMatrix.GetColumn(3);
+            position.w =
+                1f / Mathf.Max(visibleLight.range * visibleLight.range, 0.00001f);
+            otherLightPositions[index] = position;
+            otherLightDirections[index] =
+                -visibleLight.localToWorldMatrix.GetColumn(2);
+            Light light = visibleLight.light;
+            float innerCos = Mathf.Cos(Mathf.Deg2Rad * 0.5f * light.innerSpotAngle);
+            float outerCos = Mathf.Cos(Mathf.Deg2Rad * 0.5f * visibleLight.spotAngle);
+            float angleRangeInv = 1f / Mathf.Max(innerCos - outerCos, 0.001f);
+            otherLightSpotAngles[index] = new Vector4(
+                angleRangeInv, -outerCos * angleRangeInv
+            );
+            
+            otherLightShadowData[index] = shadows.ReserveOtherShadows(light, index);
+            
+        }
 
-    }
+
     public void Cleanup()
     {
         shadows.Cleanup();

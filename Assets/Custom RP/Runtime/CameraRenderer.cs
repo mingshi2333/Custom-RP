@@ -18,7 +18,7 @@ public partial class CameraRenderer
 
     private Lighting lighting = new Lighting();
     public void Render(ScriptableRenderContext context, Camera camera,
-        bool useDynamicBatching, bool useGPUInstancing,ShadowSettings shadowSettings)
+        bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject, ShadowSettings shadowSettings)
     {
         this.context = context;
         this.camera = camera;
@@ -31,10 +31,10 @@ public partial class CameraRenderer
         //Setup();
         buffer.BeginSample(SampleName);
         ExecuteBuffer();
-        lighting.Setup(context,cullingResults,shadowSettings);
+        lighting.Setup(context,cullingResults,shadowSettings,useLightsPerObject);
         buffer.EndSample(SampleName);
         Setup();
-        DrawVisibleGeometry(useDynamicBatching,useGPUInstancing);
+        DrawVisibleGeometry(useDynamicBatching,useGPUInstancing,useLightsPerObject);
         DrawUnsupportedShaders();
         DrawGizmos();
         //在提交之前清理生成的shadowmap
@@ -42,8 +42,10 @@ public partial class CameraRenderer
         Submit();
     }
 
-    void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing)
+    void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject)
     {
+        PerObjectData lightsPerObjectFlags =
+            useLightsPerObject ? PerObjectData.LightData | PerObjectData.LightIndices : PerObjectData.None;
         //不透明物体
         var sortingSettings = new SortingSettings(camera)
         {
@@ -53,6 +55,7 @@ public partial class CameraRenderer
         {
             enableDynamicBatching = useDynamicBatching,enableInstancing = useGPUInstancing,
             perObjectData = PerObjectData.ReflectionProbes | PerObjectData.Lightmaps|PerObjectData.LightProbe|PerObjectData.LightProbeProxyVolume| PerObjectData.ShadowMask| PerObjectData.OcclusionProbe
+            | lightsPerObjectFlags
         };//按照着色器以及距离排序    //后续参数可以配置   //光照贴图设置
         drawingSettings.SetShaderPassName(1,litShaderTagId);//插入支持的passtag，srpdefaultunlit是默认的，C
 

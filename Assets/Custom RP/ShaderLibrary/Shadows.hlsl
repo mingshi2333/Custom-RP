@@ -27,7 +27,7 @@ CBUFFER_START(_CustomShadows)
     float4 _CascadeData[MAX_CASCADE_COUNT];
     //float _ShadowDistance;
     float4 _ShadowDistanceFade;
-    float4 _ShadowAtlasSize; 
+    float4 _ShadowAtlasSize;
 CBUFFER_END
 
 /**
@@ -56,6 +56,13 @@ struct ShadowData
     float strength;
     ShadowMask shadowMask;
 };
+
+struct OtherShadowData
+{
+    float strength;
+    int shadowMaskChannel;
+};
+
 float FadedShadowStrength(float distance,float scale,float fade)
 {
     return saturate((1.0-distance*scale)*fade);
@@ -67,8 +74,6 @@ ShadowData GetShadowData(Surface surfaceWS)
     data.shadowMask.always = false;
     data.shadowMask.distance = false;
     data.shadowMask.shadows = 1.0;
-    
-    
     data.cascadeBlend = 1.0;
     data.strength = FadedShadowStrength(
         surfaceWS.depth, _ShadowDistanceFade.x, _ShadowDistanceFade.y
@@ -106,6 +111,8 @@ ShadowData GetShadowData(Surface surfaceWS)
     data.cascadeIndex = i;
     return data;
 }
+
+
 
 float SampleDirectionalShadowAtlas(float3 positionSTS)
 {
@@ -217,6 +224,22 @@ float GetDirectionalShadowAttenuation (DirectionalShadowData directional,ShadowD
         shadow = MixBakedAndRealtimeShadows(global,shadow,directional.shadowMaskChannel, directional.strength);
         shadow = lerp(1.0, shadow, directional.strength);//黑的地方是阴影也就是0
         
+    }
+    return shadow;
+}
+float GetOtherShadowAttenuation(OtherShadowData other,ShadowData global,Surface surfaceWS)
+{
+    #if !defined(_RECEIVE_SHADOWS)
+    return 1.0;
+    #endif
+    float shadow;
+    if(other.strength>0.0)
+    {
+        shadow = GetBakedShadow(global.shadowMask,other.shadowMaskChannel,other.strength);
+    }
+    else
+    {
+        shadow = 1.0;
     }
     return shadow;
 }

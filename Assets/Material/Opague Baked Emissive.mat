@@ -10,15 +10,15 @@ Material:
   m_Name: Opague Baked Emissive
   m_Shader: {fileID: 4800000, guid: 4d0ad870f1ef4dda83ac27bb3ea102fb, type: 3}
   m_Parent: {fileID: 2100000, guid: 06085f366bf44ca44b94e31b9f5af9b3, type: 2}
-  m_ModifiedSerializedProperties: 10
+  m_ModifiedSerializedProperties: 26
   m_ValidKeywords:
   - _RECEIVE_SHADOWS
   m_InvalidKeywords:
   - _SHADOWS_ON
-  m_LightmapFlags: 1
+  m_LightmapFlags: 2
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 2000
   stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
@@ -34,6 +34,7 @@ Material:
     - _Cutoff: 0.704
     - _Metallic: 0
     - _PremulAlpha: 0
+    - _Shadows: 0
     - _Smoothness: 0
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}

@@ -1,9 +1,7 @@
 ﻿#ifndef CUSTOM_LIGHTING_INCLUDED
 #define CUSTOM_LIGHTING_INCLUDED
 
-int GetDirectionalLightCount () {
-    return _DirectionalLightCount;
-}
+
 float3 IncomingLight (Surface surface, Light light) {
     return  saturate(dot(surface.normal, light.direction)*light.attenuation) * light.color;
 }
@@ -29,6 +27,20 @@ float3 GetLighting (Surface surfaceWS,BRDF brdf,GI gi) {
         Light light = GetDirectionalLight(i,surfaceWS,shadowData);
         color += GetLighting(surfaceWS,brdf,light);
     }
+    #if defined(_LIGHTS_PER_OBJECT)
+        for (int j = 0; j < min(unity_LightData.y,8); j++) {
+            int lightIndex = unity_LightIndices[(uint)j / 4][(uint)j % 4];
+            Light light = GetOtherLight(lightIndex, surfaceWS, shadowData);
+            color += GetLighting(surfaceWS, brdf, light);//物体灯光数组里找 限制
+        }
+    #else
+        for(int j = 0;j<GetOtherLightCount();j++)
+        {
+            Light light = GetOtherLight(j,surfaceWS,shadowData);
+            color+=GetLighting(surfaceWS,brdf,light);
+        }
+    #endif
+    
     return color;
     //return gi.shadowMask.shadows.xyz;
 }

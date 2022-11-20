@@ -125,11 +125,13 @@ float4 LitPassFragment  (Varyings input) : SV_TARGET
     #else
         BRDF brdf = GetBRDF(surface);
     #endif
-    
-    GI gi =GetGI(GI_FRAGMENT_DATA(input),surface,brdf);//采样lightmap
+
     #if defined(_SHADOWS_CLIP)
     clip(base.a- GetCutoff(config));
     #endif
+    
+    GI gi =GetGI(GI_FRAGMENT_DATA(input),surface,brdf);//采样lightmap
+
     
     float3 color = GetLighting(surface,brdf,gi);
     color += GetEmission(config);
