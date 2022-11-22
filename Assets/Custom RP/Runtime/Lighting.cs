@@ -61,7 +61,10 @@ private static string lightsPerObjectKeyword = "_LIGHTS_PER_OBJECT";//perobject�
         context.ExecuteCommandBuffer(buffer);
         buffer.Clear();
     }
-
+    public void Cleanup()
+    {
+        shadows.Cleanup();
+    }
     void SetupLights(bool useLightsPerObject)
     {
         NativeArray<int> indexMap = useLightsPerObject ? cullingResults.GetLightIndexMap(Allocator.Temp) : default;//从剔除的结果中获取光的索引图。
@@ -81,21 +84,21 @@ private static string lightsPerObjectKeyword = "_LIGHTS_PER_OBJECT";//perobject�
                 case LightType.Directional:
                     if (dirLightCount < maxDirLightCount)
                     {
-                        SetupDirectionalLight(dirLightCount++,ref visibleLight);
+                        SetupDirectionalLight(dirLightCount++,i,ref visibleLight);
                     }
                     break;
                 case LightType.Point:
                     if (otherLightCount < maxOtherLightCount)
                     {
                         newIndex = otherLightCount;
-                        SetupPointLight(otherLightCount++,ref visibleLight);
+                        SetupPointLight(otherLightCount++,i,ref visibleLight);
                     }
                     break;
                 case LightType.Spot:
                     if (otherLightCount < maxOtherLightCount)
                     {
                         newIndex = otherLightCount;
-                        SetupSpotLight(otherLightCount++,ref visibleLight);
+                        SetupSpotLight(otherLightCount++,i,ref visibleLight);
                     }
                     break;
             }
@@ -121,7 +124,7 @@ private static string lightsPerObjectKeyword = "_LIGHTS_PER_OBJECT";//perobject�
             Shader.DisableKeyword(lightsPerObjectKeyword);
         }
         
-        buffer.SetGlobalInt(dirLightCountId, visibleLights.Length);
+        buffer.SetGlobalInt(dirLightCountId, dirLightCount);
         if (dirLightCount > 0)
         {
             buffer.SetGlobalVectorArray(dirLightColorsId, dirLightColors);
@@ -140,15 +143,15 @@ private static string lightsPerObjectKeyword = "_LIGHTS_PER_OBJECT";//perobject�
     }    
 
      
-    void SetupDirectionalLight(int index,ref VisibleLight visibleLight)
+    void SetupDirectionalLight(int index,int visibleIndex, ref VisibleLight visibleLight)
          {
              dirLightColors[index] = visibleLight.finalColor;
              dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);//获取光源的超前方向
              dirLightShadowData[index] = 
-                                     shadows.ReserveDirectionalShadows(visibleLight.light,index);
+                                     shadows.ReserveDirectionalShadows(visibleLight.light,visibleIndex);
      
          }
-    void SetupPointLight(int index, ref VisibleLight visibleLight)
+    void SetupPointLight(int index,int visibleIndex, ref VisibleLight visibleLight)
          {
              otherLightColors[index] = visibleLight.finalColor;
              Vector4 position = visibleLight.localToWorldMatrix.GetColumn(3);
@@ -157,10 +160,10 @@ private static string lightsPerObjectKeyword = "_LIGHTS_PER_OBJECT";//perobject�
              otherLightSpotAngles[index] = new Vector4(0f, 1f);
              
              Light light = visibleLight.light;
-             otherLightShadowData[index] = shadows.ReserveOtherShadows(light, index);
+             otherLightShadowData[index] = shadows.ReserveOtherShadows(light, visibleIndex);
              
          }
-    void SetupSpotLight (int index, ref VisibleLight visibleLight) 
+    void SetupSpotLight (int index,int visibleIndex, ref VisibleLight visibleLight) 
         {
             otherLightColors[index] = visibleLight.finalColor;
             Vector4 position = visibleLight.localToWorldMatrix.GetColumn(3);
@@ -177,13 +180,9 @@ private static string lightsPerObjectKeyword = "_LIGHTS_PER_OBJECT";//perobject�
                 angleRangeInv, -outerCos * angleRangeInv
             );
             
-            otherLightShadowData[index] = shadows.ReserveOtherShadows(light, index);
+            otherLightShadowData[index] = shadows.ReserveOtherShadows(light, visibleIndex);
             
         }
 
-
-    public void Cleanup()
-    {
-        shadows.Cleanup();
-    }
+    
 }
