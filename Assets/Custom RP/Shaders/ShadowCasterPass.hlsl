@@ -12,6 +12,7 @@ UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)
 UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff)
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)//放入材质缓冲区结束*/
 
+bool _ShadowPancking;
 //定义汇入模型数据
 struct Attributes
 {
@@ -41,13 +42,16 @@ Varyings ShadowCasterPassVertex(Attributes input)
    //output.baseUV = input.baseUV * baseST.xy + baseST.zw;//修改UV
     ///把clip限制近平面
     ///UNITY_REVERSED_Z是判断有没有z反转的，dx为1，gl为0，UNITY_NEAR_CLIP_VALUE在dx中是1
-    #if UNITY_REVERSED_Z
-    output.positionCS.z =
-        min(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
-    #else
-    output.positionCS.z =
-        max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);//把clip限制近平面
-    #endif
+    if(_ShadowPancking)
+    {
+        #if UNITY_REVERSED_Z
+        output.positionCS.z =
+            min(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
+        #else
+        output.positionCS.z =
+            max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);//把clip限制近平面
+        #endif
+    }
     output.baseUV = TransformBaseUV(input.baseUV);
     return output;
 }
