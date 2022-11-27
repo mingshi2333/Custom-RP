@@ -49,6 +49,7 @@ public class Shadows
         public int visibleLightIndex;
         public float slopeScaleBias;
         public float normalBias;
+        public bool isPoint;
     }
 
     private ShadowedOtherLight[] shadowedOtherLights = new ShadowedOtherLight[maxShadowedOtherLightCount];
@@ -204,9 +205,22 @@ void RenderOtherShadows()
         int split = tiles <= 1 ? 1 :tiles<4?2:4;//灯的总数大于1就开始分
         int tileSize = atlasSize / split;
         
-        for (int i = 0; i < shadowedOtherLightCount; i++)
+        // for (int i = 0; i < shadowedOtherLightCount; i++)
+        // {
+        //     RenderSpotShadows(i, split, tileSize);
+        // }
+        for (int i = 0; i < shadowedOtherLightCount;)
         {
-            RenderSpotShadows(i, split, tileSize);
+            if (shadowedOtherLights[i].isPoint)
+            {
+                RenderPointShadows(i,split,tileSize);
+                i += 6;
+            }
+            else
+            {
+                RenderSpotShadows(i,split,tileSize);
+                i += 1;
+            }
         }
 
         buffer.SetGlobalMatrixArray(otherShadowMatricesId, otherShadowMatrices);
@@ -233,7 +247,7 @@ void RenderDirectionalShadows(int index, int split,int tileSize)
     
     float cullingFactor =
         Mathf.Max(0f, 0.8f - settings.directional.cascadeFade);
-    
+    float tileScale = 1f / split;
     for (int i = 0; i < cascadeCount; i++)
     {
         cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(
@@ -253,7 +267,7 @@ void RenderDirectionalShadows(int index, int split,int tileSize)
         // SetTileViewport(index,split,tileSize);
 
         dirShadowMatrices[tileIndex] =
-            ConvertToAtlasMatrix(projectionMatrix * viewMatrix, SetTileViewport(tileIndex, split, tileSize), split); //
+            ConvertToAtlasMatrix(projectionMatrix * viewMatrix, SetTileViewport(tileIndex, split, tileSize), tileScale); //
         
         buffer.SetGlobalInt(cascadeCountId, settings.directional.cascadeCount);
         buffer.SetGlobalVectorArray(
@@ -360,9 +374,11 @@ void RenderDirectionalShadows(int index, int split,int tileSize)
            maskChannel = lightBaking.occlusionMaskChannel;
        }
        //返回一个负的阴影强度和遮罩通道，以便在适当的时候使用烘培阴影
-
+       bool isPoint = light.type == LightType.Point;
+       
+       int newLightCount = shadowedOtherLightCount + (isPoint ? 6 : 1);
        if (
-           shadowedOtherLightCount >= maxShadowedOtherLightCount ||
+           newLightCount > maxShadowedOtherLightCount ||
            !cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
        {
            return new Vector4(-light.shadowStrength, 0f, 0f, maskChannel);
@@ -372,10 +388,12 @@ void RenderDirectionalShadows(int index, int split,int tileSize)
        {
            visibleLightIndex = visibleLightIndex,
            slopeScaleBias = light.shadowBias,
-           normalBias = light.shadowNormalBias
+           normalBias = light.shadowNormalBias,
+           isPoint = isPoint
        };
-
-       return new Vector4(light.shadowStrength, shadowedOtherLightCount++, 0f, maskChannel);
+       Vector4 data = new Vector4(light.shadowStrength, shadowedOtherLightCount, isPoint ? 1f : 0f, maskChannel);
+       shadowedOtherLightCount = newLightCount;
+       return data;
 
     }
 
@@ -392,10 +410,12 @@ void RenderDirectionalShadows(int index, int split,int tileSize)
         float texelSize = 2f / (tileSize * projectionMatrix.m00);
         float filterSize = texelSize * ((float)settings.other.filter + 1f);
         float bias = light.normalBias * filterSize * 1.4142136f;
-        SetOtherTileData(index,bias);
+        float tileScale = 1f / split;
+        Vector2 offset = SetTileViewport(index, split, tileSize);
+        SetOtherTileData(index,offset,1/split,bias);
         otherShadowMatrices[index] = ConvertToAtlasMatrix(
             projectionMatrix * viewMatrix,
-            SetTileViewport(index, split, tileSize), split
+            offset, tileScale
         );
         buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
         buffer.SetGlobalDepthBias(0f, light.slopeScaleBias);
@@ -403,8 +423,56 @@ void RenderDirectionalShadows(int index, int split,int tileSize)
         context.DrawShadows(ref shadowSettings);
         buffer.SetGlobalDepthBias(0f, 0f);
     }
-    void SetOtherTileData (int index, float bias) {
-        Vector4 data = Vector4.zero;
+    
+    void RenderPointShadows (int index, int split, int tileSize) {
+        ShadowedOtherLight light = shadowedOtherLights[index];
+        var shadowSettings =
+            new ShadowDrawingSettings(cullingResults, light.visibleLightIndex);
+        
+        float texelSize = 2f / tileSize;
+        float filterSize = texelSize * ((float)settings.other.filter + 1f);
+        float bias = light.normalBias * filterSize * 1.4142136f;
+        float tileScale = 1f / split;
+        float fovBias =
+            Mathf.Atan(1f + bias + filterSize) * Mathf.Rad2Deg * 2f - 90f;
+        for (int i = 0; i < 6; i++) {
+            cullingResults.ComputePointShadowMatricesAndCullingPrimitives(
+                light.visibleLightIndex, (CubemapFace)i, fovBias,
+                out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix,
+                out ShadowSplitData splitData
+            );
+            viewMatrix.m11 = -viewMatrix.m11;
+            viewMatrix.m12 = -viewMatrix.m12;
+            viewMatrix.m13 = -viewMatrix.m13;
+            shadowSettings.splitData = splitData;
+            int tileIndex = index + i;
+            // float texelSize = 2f / (tileSize * projectionMatrix.m00);
+            // float filterSize = texelSize * ((float)settings.other.filter + 1f);
+            // float bias = light.normalBias * filterSize * 1.4142136f;
+            
+            Vector2 offset = SetTileViewport(tileIndex, split, tileSize);
+            
+            // float tileScale = 1f / split;
+            SetOtherTileData(tileIndex, offset, tileScale, bias);
+            otherShadowMatrices[tileIndex] = ConvertToAtlasMatrix(
+                projectionMatrix * viewMatrix, offset, tileScale
+            );
+
+            buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
+            buffer.SetGlobalDepthBias(0f, light.slopeScaleBias);
+            ExecuteBuffer();
+            context.DrawShadows(ref shadowSettings);
+            buffer.SetGlobalDepthBias(0f, 0f);
+        }
+    }
+    
+    void SetOtherTileData (int index,Vector2 offset,float scale, float bias)
+    {
+        float border = atlasSizes.w * 0.5f;
+        Vector4 data;
+        data.x = offset.x * scale + border;
+        data.y = offset.y * scale + border;
+        data.z = scale - border - border;
         data.w = bias;
         otherShadowTiles[index] = data;
     }
@@ -428,7 +496,7 @@ void RenderDirectionalShadows(int index, int split,int tileSize)
         return offset;
     }
 
-    Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, int split)
+    Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, float tileScale)
     {
         if (SystemInfo.usesReversedZBuffer)
         {
@@ -436,15 +504,15 @@ void RenderDirectionalShadows(int index, int split,int tileSize)
             m.m21 *= -1;
             m.m22 *= -1;
             m.m23 *= -1;
-            float scale = 1f / split;
-            m.m00 = (0.5f * (m.m00 + m.m30) + offset.x * m.m30) * scale;
-            m.m01 = (0.5f * (m.m01 + m.m31) + offset.x * m.m31) * scale;
-            m.m02 = (0.5f * (m.m02 + m.m32) + offset.x * m.m32) * scale;
-            m.m03 = (0.5f * (m.m03 + m.m33) + offset.x * m.m33) * scale;
-            m.m10 = (0.5f * (m.m10 + m.m30) + offset.y * m.m30) * scale;
-            m.m11 = (0.5f * (m.m11 + m.m31) + offset.y * m.m31) * scale;
-            m.m12 = (0.5f * (m.m12 + m.m32) + offset.y * m.m32) * scale;
-            m.m13 = (0.5f * (m.m13 + m.m33) + offset.y * m.m33) * scale;
+            //float scale = 1f / split;
+            m.m00 = (0.5f * (m.m00 + m.m30) + offset.x * m.m30) * tileScale;
+            m.m01 = (0.5f * (m.m01 + m.m31) + offset.x * m.m31) * tileScale;
+            m.m02 = (0.5f * (m.m02 + m.m32) + offset.x * m.m32) * tileScale;
+            m.m03 = (0.5f * (m.m03 + m.m33) + offset.x * m.m33) * tileScale;
+            m.m10 = (0.5f * (m.m10 + m.m30) + offset.y * m.m30) * tileScale;
+            m.m11 = (0.5f * (m.m11 + m.m31) + offset.y * m.m31) * tileScale;
+            m.m12 = (0.5f * (m.m12 + m.m32) + offset.y * m.m32) * tileScale;
+            m.m13 = (0.5f * (m.m13 + m.m33) + offset.y * m.m33) * tileScale;
             m.m20 = 0.5f * (m.m20 + m.m30);
             m.m21 = 0.5f * (m.m21 + m.m31);
             m.m22 = 0.5f * (m.m22 + m.m32);
