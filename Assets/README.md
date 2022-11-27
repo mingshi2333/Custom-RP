@@ -14,11 +14,11 @@
 
 -[x] Complex Maps
 
--[ ] Point and Spot Lights
+-[x] Point and Spot Lights  
 
--[ ] Point and Spot Shadows
+-[x] Point and Spot Shadows 
 
--[ ] Post Processing 
+-[x] Post Processing 
 
 -[ ] HDR
 
