@@ -17,8 +17,10 @@ public partial class CameraRenderer
     private static ShaderTagId litShaderTagId = new ShaderTagId("CustomLit");//添加我们自己的tag
 
     private Lighting lighting = new Lighting();
+    private PostFXStack postFXStack = new PostFXStack();
+    static int frameBufferId = Shader.PropertyToID("_CameraFrameBuffer");//后处理源纹理
     public void Render(ScriptableRenderContext context, Camera camera,
-        bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject, ShadowSettings shadowSettings)
+        bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject, ShadowSettings shadowSettings, PostFXSettings postFXSettings)
     {
         this.context = context;
         this.camera = camera;
@@ -32,13 +34,20 @@ public partial class CameraRenderer
         buffer.BeginSample(SampleName);
         ExecuteBuffer();
         lighting.Setup(context,cullingResults,shadowSettings,useLightsPerObject);
+        postFXStack.Setup(context,camera,postFXSettings);
         buffer.EndSample(SampleName);
         Setup();
         DrawVisibleGeometry(useDynamicBatching,useGPUInstancing,useLightsPerObject);
         DrawUnsupportedShaders();
-        DrawGizmos();
+        //DrawGizmos();
+        DrawGizmosBeforeFX();
+        if (postFXStack.IsActive)
+        {
+            postFXStack.Render(frameBufferId);
+        }
+        DrawGizmosAfterFX();
+        Cleanup();
         //在提交之前清理生成的shadowmap
-        lighting.Cleanup();
         Submit();
     }
 
@@ -76,12 +85,30 @@ public partial class CameraRenderer
     }
 
 
-
+    void Cleanup () {
+        lighting.Cleanup();
+        if (postFXStack.IsActive) {
+            buffer.ReleaseTemporaryRT(frameBufferId);
+        }
+    }
     void Setup()
     {
         context.SetupCameraProperties(camera);//传入相机的mvp矩阵等参数
         CameraClearFlags flags;
         flags = camera.clearFlags;
+        if (postFXStack.IsActive) {
+            if (flags > CameraClearFlags.Color) {
+                flags = CameraClearFlags.Color;
+            }
+            buffer.GetTemporaryRT(
+                frameBufferId, camera.pixelWidth, camera.pixelHeight,
+                32, FilterMode.Bilinear, RenderTextureFormat.Default
+            );
+            buffer.SetRenderTarget(
+                frameBufferId,
+                RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store
+            );
+        }
 
         buffer.ClearRenderTarget(flags<=CameraClearFlags.Depth,flags==CameraClearFlags.Color,flags==CameraClearFlags.Color ? camera.backgroundColor.linear : Color.clear);//清屏     有两种清理方式，在没有设置摄像机之前调用是使用一个专门的着色器渲染一个四边形，在之后调用话则是直接清理颜色和深度
         //Clear (color+Z+stencil)
@@ -105,6 +132,7 @@ public partial class CameraRenderer
         context.ExecuteCommandBuffer(buffer);
         buffer.Clear();
     }
+    
 
     bool Cull(float maxShadowDistance)
     {
