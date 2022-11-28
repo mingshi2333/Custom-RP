@@ -11,6 +11,7 @@ public partial class CameraRenderer
         name = bufferName
     };
 
+    private bool useHDR;
     private CullingResults cullingResults;
     private static ShaderTagId unlitShadeerTagId = new ShaderTagId("SRPDefaultUnlit");
 
@@ -20,7 +21,7 @@ public partial class CameraRenderer
     private PostFXStack postFXStack = new PostFXStack();
     static int frameBufferId = Shader.PropertyToID("_CameraFrameBuffer");//后处理源纹理
     public void Render(ScriptableRenderContext context, Camera camera,
-        bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject, ShadowSettings shadowSettings, PostFXSettings postFXSettings)
+        bool allowHDR, bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject, ShadowSettings shadowSettings, PostFXSettings postFXSettings)
     {
         this.context = context;
         this.camera = camera;
@@ -30,11 +31,14 @@ public partial class CameraRenderer
         {
             return;
         }
+
+        useHDR = allowHDR && camera.allowHDR;
+        /*Debug.Log(useHDR);*/
         //Setup();
         buffer.BeginSample(SampleName);
         ExecuteBuffer();
         lighting.Setup(context,cullingResults,shadowSettings,useLightsPerObject);
-        postFXStack.Setup(context,camera,postFXSettings);
+        postFXStack.Setup(context,camera,postFXSettings,useHDR);
         buffer.EndSample(SampleName);
         Setup();
         DrawVisibleGeometry(useDynamicBatching,useGPUInstancing,useLightsPerObject);
@@ -102,8 +106,8 @@ public partial class CameraRenderer
             }
             buffer.GetTemporaryRT(
                 frameBufferId, camera.pixelWidth, camera.pixelHeight,
-                32, FilterMode.Bilinear, RenderTextureFormat.Default
-            );
+                32, FilterMode.Bilinear, useHDR? RenderTextureFormat.DefaultHDR: RenderTextureFormat.Default
+            );//支持defaulthdr 每个颜色16位，在任何平台总是支持
             buffer.SetRenderTarget(
                 frameBufferId,
                 RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store

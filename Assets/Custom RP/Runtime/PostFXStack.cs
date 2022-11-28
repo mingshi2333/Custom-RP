@@ -4,7 +4,7 @@ using UnityEngine.Rendering;
 public partial class PostFXStack {
 
     const string bufferName = "Post FX";
-
+    private bool useHDR;
     CommandBuffer buffer = new CommandBuffer {
         name = bufferName
     };
@@ -36,11 +36,12 @@ public partial class PostFXStack {
     }
 
     public void Setup (
-        ScriptableRenderContext context, Camera camera, PostFXSettings settings
+        ScriptableRenderContext context, Camera camera, PostFXSettings settings,bool useHDR
     ) {
         this.context = context;
         this.camera = camera;
         this.settings = camera.cameraType<=CameraType.SceneView ? settings : null;
+        this.useHDR = useHDR;
         ApplySceneViewState();
     }
 
@@ -93,7 +94,8 @@ public partial class PostFXStack {
             buffer.EndSample("Bloom");
             return;
         }
-        RenderTextureFormat format = RenderTextureFormat.Default;
+
+        RenderTextureFormat format = useHDR ? RenderTextureFormat.DefaultHDR : RenderTextureFormat.Default;
         
         buffer.GetTemporaryRT(
             bloomPrefilterId, width, height, 0, FilterMode.Bilinear, format

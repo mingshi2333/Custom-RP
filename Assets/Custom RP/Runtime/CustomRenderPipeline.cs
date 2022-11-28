@@ -4,12 +4,14 @@ using UnityEngine.Rendering;
 public partial class CustomRenderPipeline : RenderPipeline
 {
     //实例，在创建的时候自动设置pipelinebatching 
+    private bool allowHDR;
     bool useDynamicBatching, useGPUInstancing,useLightsPerObject;
     ShadowSettings shadowSettings;
     private PostFXSettings postFXSettings;
-    public CustomRenderPipeline(bool useDynamicBatching, bool useGPUInstancing, bool useSRPBatcher,bool useLightsPerObject, ShadowSettings shadowSettings
+    public CustomRenderPipeline(bool allowHDR, bool useDynamicBatching, bool useGPUInstancing, bool useSRPBatcher,bool useLightsPerObject, ShadowSettings shadowSettings
     ,PostFXSettings postFXSettings)
     {
+        this.allowHDR = allowHDR;
         this.useDynamicBatching = useDynamicBatching;
         this.useGPUInstancing = useGPUInstancing;
         this.shadowSettings = shadowSettings;
@@ -23,7 +25,7 @@ public partial class CustomRenderPipeline : RenderPipeline
     protected override void Render(ScriptableRenderContext context, Camera[] cameras) {
         foreach (var camera in cameras)
         {
-            renderer.Render(context,camera,useDynamicBatching,useGPUInstancing,useLightsPerObject,shadowSettings,postFXSettings);
+            renderer.Render(context,camera,allowHDR, useDynamicBatching,useGPUInstancing,useLightsPerObject,shadowSettings,postFXSettings);
             
 
         }
