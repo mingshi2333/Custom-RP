@@ -9,6 +9,62 @@
 		#include "../ShaderLibrary/Common.hlsl"
 		#include "PostFXStackPasses.hlsl"
 		ENDHLSL
+		
+		Pass {
+			Name "Bloom ACES"
+			
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment ToneMappingACESPassFragment
+			ENDHLSL
+		}
+		Pass {
+			Name "Bloom NeutralPass"
+			
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment ToneMappingNeutralPassFragment
+			ENDHLSL
+		}
+		Pass {
+			Name "Bloom Reinhard"
+			
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment ToneMappingReinhardPassFragment
+			ENDHLSL
+		}
+		Pass {
+			Name "Bloom Scatter"
+			
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment BloomScatterFinalPassFragment
+			ENDHLSL
+		}
+		Pass {
+			Name "Bloom Scatter"
+			
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment BloomScatterPassFragment
+			ENDHLSL
+		}		
+		Pass {
+			Name "Bloom PrefilterFireflies"
+			
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment BloomPrefilterFirefliesPassFragment
+			ENDHLSL
+		}
+		
 		Pass {
 			Name "Bloom Prefilter"
 			
