@@ -496,7 +496,7 @@ void RenderDirectionalShadows(int index, int split,int tileSize)
         return offset;
     }
 
-    Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, float tileScale)
+Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, float tileScale)
     {
         if (SystemInfo.usesReversedZBuffer)
         {

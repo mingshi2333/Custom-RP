@@ -9,7 +9,16 @@
 		#include "../ShaderLibrary/Common.hlsl"
 		#include "PostFXStackPasses.hlsl"
 		ENDHLSL
-		
+
+		Pass {
+			Name "Bloom None"
+			
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment ToneMappingNonePassFragment
+			ENDHLSL
+		}
 		Pass {
 			Name "Bloom ACES"
 			

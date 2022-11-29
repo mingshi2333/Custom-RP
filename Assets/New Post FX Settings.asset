@@ -13,13 +13,21 @@ MonoBehaviour:
   m_Name: New Post FX Settings
   m_EditorClassIdentifier: 
   shader: {fileID: 4800000, guid: 5708c9cc287b4ae6bb06e233e729d649, type: 3}
+  colorAdjustments:
+    postExposure: 0
+    contrast: 0
+    colorFilter: {r: 0, g: 0, b: 0, a: 0}
+    hueShift: 0
+    saturation: 0
   bloom:
-    maxIterations: 11
+    maxIterations: 4
     downscaleLimit: 1
     bicubicUpsampling: 1
     threshold: 1
     intensity: 1
     fadeFireflies: 1
     mode: 0
-    scatter: 0.34
-    thresholdKnee: 0.039
+    scatter: 0.794
+    thresholdKnee: 0
+  toneMapping:
+    mode: 3

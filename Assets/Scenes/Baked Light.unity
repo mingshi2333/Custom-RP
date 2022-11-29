@@ -37,7 +37,7 @@ RenderSettings:
   m_ReflectionBounces: 1
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
-  m_Sun: {fileID: 0}
+  m_Sun: {fileID: 2077578561}
   m_IndirectSpecularColor: {r: 0.18341845, g: 0.22901416, b: 0.30599838, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
@@ -1235,7 +1235,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
+  field of view: 26.991467
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -1260,8 +1260,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_LocalRotation: {x: -0.01894666, y: 0.83837706, z: -0.02099712, w: -0.5443566}
-  m_LocalPosition: {x: 6.167096, y: 1.162696, z: 3.404985}
+  m_LocalRotation: {x: 0.15407757, y: -0.84017885, z: 0.33631593, w: 0.39654914}
+  m_LocalPosition: {x: 12.316164, y: 7.644636, z: 7.151593}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1281,7 +1281,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   boost: 3.5
-  positionLerpTime: 0.2
+  positionLerpTime: 0.766
   mouseSensitivity: 60
   mouseSensitivityCurve:
     serializedVersion: 2
@@ -2142,7 +2142,7 @@ Light:
   m_Shape: 0
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 1
-  m_Range: 10
+  m_Range: 20.11
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
@@ -2199,7 +2199,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2077578560}
   m_LocalRotation: {x: -0.18743439, y: 0.7484974, z: -0.23878045, w: -0.5895794}
-  m_LocalPosition: {x: 13.207203, y: 8.950264, z: 3.4476118}
+  m_LocalPosition: {x: 10.37, y: 3.39, z: 2.76}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
