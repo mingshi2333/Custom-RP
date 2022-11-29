@@ -1,33 +1,36 @@
-﻿-[x] Custom Render Pipeline
+﻿## Done
+- [x] Custom Render Pipeline
 
--[x] Draw calls
+- [x] Draw calls
 
--[x] Drectional Lights
+- [x] Drectional Lights
 
--[x] Directional Shadows
+- [x] Directional Shadows
 
--[x] Baked Light
+- [x] Baked Light
 
--[x] Shadow Masks
+- [x] Shadow Masks
 
--[x] LOD and Reflections
+- [x] LOD and Reflections
 
--[x] Complex Maps
+- [x] Complex Maps
 
--[x] Point and Spot Lights  
+- [x] Point and Spot Lights  
 
--[x] Point and Spot Shadows 
+- [x] Point and Spot Shadows 
 
--[x] Post Processing 
+- [x] Post Processing 
 
--[ ] HDR
+- [x] HDR  
 
--[ ] Color Grading 
+### Need to finish
 
--[ ] Multiple Cameras
+- [ ] Color Grading 
 
--[ ] Particles
+- [ ] Multiple Cameras
 
--[ ] Render Scale
+- [ ] Particles
 
--[ ] FXAA
+- [ ] Render Scale
+
+- [ ] FXAA
