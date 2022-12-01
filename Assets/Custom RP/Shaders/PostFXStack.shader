@@ -9,41 +9,49 @@
 		#include "../ShaderLibrary/Common.hlsl"
 		#include "PostFXStackPasses.hlsl"
 		ENDHLSL
-
 		Pass {
-			Name "Bloom None"
+			Name "Final"
 			
 			HLSLPROGRAM
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
-				#pragma fragment ToneMappingNonePassFragment
+				#pragma fragment FinalPassFragment
 			ENDHLSL
 		}
 		Pass {
-			Name "Bloom ACES"
+			Name "Color Grading None"
 			
 			HLSLPROGRAM
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
-				#pragma fragment ToneMappingACESPassFragment
+				#pragma fragment ColorGradingNonePassFragment
 			ENDHLSL
 		}
 		Pass {
-			Name "Bloom NeutralPass"
+			Name "Color Grading ACES"
 			
 			HLSLPROGRAM
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
-				#pragma fragment ToneMappingNeutralPassFragment
+				#pragma fragment ColorGradingACESPassFragment
 			ENDHLSL
 		}
 		Pass {
-			Name "Bloom Reinhard"
+			Name "Color Grading Neutral"
 			
 			HLSLPROGRAM
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
-				#pragma fragment ToneMappingReinhardPassFragment
+				#pragma fragment ColorGradingNeutralPassFragment
+			ENDHLSL
+		}
+		Pass {
+			Name "Color Grading Reinhard"
+			
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment ColorGradingReinhardPassFragment
 			ENDHLSL
 		}
 		Pass {

@@ -49,4 +49,4 @@ MonoBehaviour:
     scatter: 0.51
     thresholdKnee: 0
   toneMapping:
-    mode: 1
+    mode: 2

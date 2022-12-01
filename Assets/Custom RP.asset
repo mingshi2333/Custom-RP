@@ -17,14 +17,15 @@ MonoBehaviour:
   useGPUInstancing: 1
   useSRPBatcher: 1
   useLightsPerObject: 0
+  colorLUTResolution: 64
   postFXSettings: {fileID: 11400000, guid: 3d1da17f451345b4f89df72faac71cad, type: 2}
   shadows:
     maxDistance: 68.95
-    distanceFade: 0.156
+    distanceFade: 0.132
     directional:
-      atlasSize: 8192
+      atlasSize: 4096
       filter: 3
-      cascadeBlend: 2
+      cascadeBlend: 0
       cascadeCount: 4
       cascadeRatio1: 0.3
       cascadeRatio2: 0.4
