@@ -11,6 +11,7 @@
 		ENDHLSL
 		Pass {
 			Name "Final"
+			Blend [_FinalSrcBlend] [_FinalDstBlend]
 			
 			HLSLPROGRAM
 				#pragma target 3.5
@@ -97,7 +98,7 @@
 			HLSLPROGRAM
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
-				#pragma fragment BloomCombinePassFragment
+				#pragma fragment BloomAddPassFragment 
 			ENDHLSL
 		}
 		Pass {

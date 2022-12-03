@@ -18,7 +18,7 @@ MonoBehaviour:
   useSRPBatcher: 1
   useLightsPerObject: 0
   colorLUTResolution: 64
-  postFXSettings: {fileID: 11400000, guid: 3d1da17f451345b4f89df72faac71cad, type: 2}
+  postFXSettings: {fileID: 11400000, guid: 9ddac40870814214d88085e191bbe618, type: 2}
   shadows:
     maxDistance: 68.95
     distanceFade: 0.132

@@ -10,22 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f7aaae7969bb412d9ab6896c77d63f8e, type: 3}
-  m_Name: New Post FX Settings
+  m_Name: New Post FX Settings 1
   m_EditorClassIdentifier: 
   shader: {fileID: 4800000, guid: 5708c9cc287b4ae6bb06e233e729d649, type: 3}
   colorAdjustments:
     postExposure: 0
     contrast: 0
-    colorFilter: {r: 1, g: 1, b: 1, a: 0}
+    colorFilter: {r: 1, g: 1, b: 1, a: 1}
     hueShift: 0
-    saturation: 100
+    saturation: 0
   whiteBalance:
     temperature: 0
     tint: 0
   splitToning:
-    shadows: {r: 0.3018868, g: 0.28337488, b: 0.28337488, a: 1}
-    highlights: {r: 0.3679245, g: 0.31065324, b: 0.31065324, a: 1}
-    balance: 11.3
+    shadows: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+    highlights: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+    balance: 0
   channelMixer:
     red: {x: 1, y: 0, z: 0}
     green: {x: 0, y: 1, z: 0}
@@ -42,11 +42,11 @@ MonoBehaviour:
     maxIterations: 3
     downscaleLimit: 1
     bicubicUpsampling: 1
-    threshold: 1
+    threshold: 1.27
     intensity: 1
     fadeFireflies: 1
     mode: 0
-    scatter: 0.51
+    scatter: 0.589
     thresholdKnee: 0
   toneMapping:
-    mode: 2
+    mode: 1

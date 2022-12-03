@@ -23,9 +23,8 @@
 
 - [x] HDR  
 
-### Need to finish
-
-- [ ] Color Grading 
+- [x] Color Grading
+- ### Need to finish
 
 - [ ] Multiple Cameras
 
