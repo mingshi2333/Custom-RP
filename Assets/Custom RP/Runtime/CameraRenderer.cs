@@ -45,11 +45,11 @@ public partial class CameraRenderer
         //Setup();
         buffer.BeginSample(SampleName);
         ExecuteBuffer();
-        lighting.Setup(context,cullingResults,shadowSettings,useLightsPerObject);
+        lighting.Setup(context,cullingResults,shadowSettings,useLightsPerObject,cameraSettings.maskLights ? cameraSettings.renderingLayerMask : -1);
         postFXStack.Setup(context,camera,postFXSettings,useHDR,colorLUTResolution,cameraSettings.finalBlendMode);
         buffer.EndSample(SampleName);
         Setup();
-        DrawVisibleGeometry(useDynamicBatching,useGPUInstancing,useLightsPerObject);
+        DrawVisibleGeometry(useDynamicBatching,useGPUInstancing,useLightsPerObject,cameraSettings.renderingLayerMask);
         DrawUnsupportedShaders();
         //DrawGizmos();
         DrawGizmosBeforeFX();
@@ -63,7 +63,7 @@ public partial class CameraRenderer
         Submit();
     }
 
-    void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject)
+    void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject,int renderingLayerMask)
     {
         PerObjectData lightsPerObjectFlags =
             useLightsPerObject ? PerObjectData.LightData | PerObjectData.LightIndices : PerObjectData.None;
@@ -80,7 +80,7 @@ public partial class CameraRenderer
         };//按照着色器以及距离排序    //后续参数可以配置   //光照贴图设置
         drawingSettings.SetShaderPassName(1,litShaderTagId);//插入支持的passtag，srpdefaultunlit是默认的，C
 
-        var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
+        var filteringSettings = new FilteringSettings(RenderQueueRange.opaque, renderingLayerMask: (uint)renderingLayerMask);
         context.DrawRenderers(
             cullingResults,ref drawingSettings,ref filteringSettings);
         //天空box

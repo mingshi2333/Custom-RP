@@ -118,6 +118,8 @@ float4 LitPassFragment  (Varyings input) : SV_TARGET
     surface.dither = InterleavedGradientNoise(input.positionCS.xy,0);
     surface.depth = -TransformWorldToView(input.positionWS).z;
     surface.fresnelStrength = GetFresnel(config);
+    //surface.renderingLayerMask = unity_RenderingLayer.x;
+    surface.renderingLayerMask = asuint(unity_RenderingLayer.x);
     
 
     #if defined(_PREMULTIPLY_ALPHA)

@@ -7,6 +7,7 @@ CBUFFER_START(UnityPerDraw)
 	float4 unity_LODFade;
 	float3 _WorldSpaceCameraPos;//相机位置
 	float4  unity_WorldTransformParams;
+	float4 unity_RenderingLayer;
 
 	real4 unity_LightData;//y分量传入的是灯光数量
 	real4 unity_LightIndices[2];//长度位2的数组，这两个向量的每个通道都包含一个灯光索引，所以每个物体最多支持八个。
