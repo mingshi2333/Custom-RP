@@ -15,6 +15,9 @@ UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 struct InputConfig {
     float2 baseUV;
+    float4 color;
+    float3 flipbookUVB;
+    bool flipbookBlending;
 };
 
 float GetFinalAlpha (float alpha) {
@@ -23,6 +26,9 @@ float GetFinalAlpha (float alpha) {
 InputConfig GetInputConfig (float2 baseUV) {
     InputConfig c;
     c.baseUV = baseUV;
+    c.color = 1.0;
+    c.flipbookUVB = 0.0;
+    c.flipbookBlending = false;
     return c;
 }
 
@@ -44,8 +50,14 @@ float4 GetDetail (InputConfig c) {
 }
 float4 GetBase (InputConfig c) {
     float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, c.baseUV);
+    if (c.flipbookBlending) {
+        baseMap = lerp(
+            baseMap, SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, c.flipbookUVB.xy),
+            c.flipbookUVB.z
+        );
+    }
     float4 baseColor = INPUT_PROP(_BaseColor);
-    return baseMap * baseColor;
+    return baseMap * baseColor*c.color;
 }
 
 float3 GetNormalTS (InputConfig c) {
@@ -70,6 +82,13 @@ float GetSmoothness (InputConfig c) {
 
 float GetFresnel (InputConfig c) {
     return 0.0;
+}
+void ClipLOD(float2 positionCS,float fade)
+{
+    #if defined(LOD_FADE_CROSSFADE)
+    float dither=InterleavedGradientNoise(positionCS.xy, 0);
+    clip(fade + (fade < 0.0 ? dither : -dither));
+    #endif
 }
 
 #endif

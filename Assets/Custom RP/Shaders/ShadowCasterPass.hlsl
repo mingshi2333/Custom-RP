@@ -11,6 +11,7 @@ UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST)
 UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)
 UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff)
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)//放入材质缓冲区结束*/
+#include "../ShaderLibrary/Common.hlsl"
 
 bool _ShadowPancking;
 //定义汇入模型数据
@@ -60,8 +61,8 @@ void ShadowCasterPassFragment(Varyings input)
 {
     UNITY_SETUP_INSTANCE_ID(input);//实例化
     
-    ClipLOD(input.positionCS.xy,unity_LODFade.x);
     InputConfig config = GetInputConfig(input.baseUV);
+    ClipLOD(input.positionCS.xy,unity_LODFade.x);
     //float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV);//采样贴图
     //float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor);//汇入基础颜色
     float4 base = GetBase(config);
