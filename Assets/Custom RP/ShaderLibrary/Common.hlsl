@@ -24,6 +24,28 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
 SAMPLER(sampler_linear_clamp);
 SAMPLER(sampler_point_clamp);
+
+/**
+ * \brief 
+ * \return 如果是正交相机，他的分量是1，否则是0
+ */
+bool IsOrthographicCamera()
+{
+    return unity_OrthoParams.w;
+}
+
+/**
+ * \brief 
+ * \param rawDepth 
+ * \return 近距离和远距离被存储在_ProjectionParams的Y和Z部分。如果使用反转的深度缓冲器，我们还需要反转原始深度。
+ */
+float OrthographicDepthBufferToLinear (float rawDepth) {
+    #if UNITY_REVERSED_Z
+    rawDepth = 1.0 - rawDepth;
+    #endif
+    return (_ProjectionParams.z - _ProjectionParams.y) * rawDepth + _ProjectionParams.y;
+}
+
 #include "Fragment.hlsl"
 
 /*float3 TransformObjectToWorld (float3 positionOS) {

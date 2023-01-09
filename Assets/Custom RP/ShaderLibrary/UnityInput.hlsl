@@ -34,6 +34,9 @@ CBUFFER_START(UnityPerDraw)
 	float4 unity_ProbeVolumeMin;
 //
 	float4 unity_SpecCube0_HDR;
+//识别相机是否正交
+	float4 unity_OrthoParams;
+	float4 _ProjectionParams;
 CBUFFER_END
 
 float4x4 unity_MatrixVP;

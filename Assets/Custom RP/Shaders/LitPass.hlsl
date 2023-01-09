@@ -137,8 +137,8 @@ float4 LitPassFragment  (Varyings input) : SV_TARGET
     
     float3 color = GetLighting(surface,brdf,gi);
     color += GetEmission(config);
-    //return float4(color, GetFinalAlpha(surface.alpha));
-    return float4(config.fragment.depth.xxx / 20.0, 1.0);
+    return float4(color, GetFinalAlpha(surface.alpha));
+    //return float4(config.fragment.depth.xxx / 20.0, 1.0);
 
 }
 
