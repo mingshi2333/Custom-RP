@@ -5,7 +5,6 @@
 TEXTURE2D(_PostFXSource);
 TEXTURE2D(_PostFXSource2);
 TEXTURE2D(_ColorGradingLUT);
-SAMPLER(sampler_linear_clamp);
 float4 _ProjectionParams;//x分量决定了是否颠倒
 
 float4 _PostFXSource_TexelSize;

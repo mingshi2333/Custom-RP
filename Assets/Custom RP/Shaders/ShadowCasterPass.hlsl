@@ -11,7 +11,6 @@ UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST)
 UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)
 UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff)
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)//放入材质缓冲区结束*/
-#include "../ShaderLibrary/Common.hlsl"
 
 bool _ShadowPancking;
 //定义汇入模型数据
@@ -25,7 +24,7 @@ struct Attributes
 //汇入顶点数据
 struct Varyings
 {
-    float4 positionCS : SV_POSITION;//实例化
+    float4 positionCS_SS : SV_POSITION;//实例化
     float2 baseUV : VAR_BASE_UV;
     UNITY_VERTEX_INPUT_INSTANCE_ID
 };
@@ -37,7 +36,7 @@ Varyings ShadowCasterPassVertex(Attributes input)
     UNITY_SETUP_INSTANCE_ID(input);//实例化
     UNITY_TRANSFER_INSTANCE_ID(input, output);//传递到片元着色器里面
     float3 positionWS = TransformObjectToWorld(input.positionOS);//从模型空间到世界空间
-    output.positionCS = TransformWorldToHClip(positionWS);//从世界空间到裁剪空间
+    output.positionCS_SS = TransformWorldToHClip(positionWS);//从世界空间到裁剪空间
 
     //float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);//汇入ST
    //output.baseUV = input.baseUV * baseST.xy + baseST.zw;//修改UV
@@ -46,8 +45,8 @@ Varyings ShadowCasterPassVertex(Attributes input)
     if(_ShadowPancking)
     {
         #if UNITY_REVERSED_Z
-        output.positionCS.z =
-            min(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
+        output.positionCS_SS.z =
+            min(output.positionCS_SS.z, output.positionCS_SS.w * UNITY_NEAR_CLIP_VALUE);
         #else
         output.positionCS.z =
             max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);//把clip限制近平面
@@ -61,8 +60,8 @@ void ShadowCasterPassFragment(Varyings input)
 {
     UNITY_SETUP_INSTANCE_ID(input);//实例化
     
-    InputConfig config = GetInputConfig(input.baseUV);
-    ClipLOD(input.positionCS.xy,unity_LODFade.x);
+    InputConfig config = GetInputConfig(input.positionCS_SS,input.baseUV);
+    ClipLOD(config.fragment,unity_LODFade.x);
     //float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV);//采样贴图
     //float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor);//汇入基础颜色
     float4 base = GetBase(config);

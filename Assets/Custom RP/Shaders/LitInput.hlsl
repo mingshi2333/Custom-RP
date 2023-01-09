@@ -32,13 +32,15 @@ UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 struct InputConfig
 {
+    Fragment fragment;
     float2 baseUV;
     float2 detailUV;
     bool useMask;
     bool useDetail;
 };
-InputConfig GetInputConfig (float2 baseUV, float2 detailUV = 0.0) {
+InputConfig GetInputConfig (float4 positionSS,float2 baseUV, float2 detailUV = 0.0) {
     InputConfig c;
+    c.fragment = GetFragment(positionSS);
     c.baseUV = baseUV;
     c.detailUV = detailUV;
     c.useMask = false;
@@ -151,12 +153,6 @@ float GetFresnel(InputConfig c)
     return INPUT_PROP(_Fresnel);
 }
 //计算lod中间切换
-void ClipLOD(float2 positionCS,float fade)
-{
-    #if defined(LOD_FADE_CROSSFADE)
-        float dither=InterleavedGradientNoise(positionCS.xy, 0);
-        clip(fade + (fade < 0.0 ? dither : -dither));
-    #endif
-}
+
 
 #endif

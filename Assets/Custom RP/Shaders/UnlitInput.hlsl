@@ -14,6 +14,7 @@ UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 #define INPUT_PROP(name) UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, name)
 
 struct InputConfig {
+    Fragment fragment;
     float2 baseUV;
     float4 color;
     float3 flipbookUVB;
@@ -23,8 +24,9 @@ struct InputConfig {
 float GetFinalAlpha (float alpha) {
     return INPUT_PROP(_ZWrite) ? 1.0 : alpha;
 }
-InputConfig GetInputConfig (float2 baseUV) {
+InputConfig GetInputConfig (float4 positionSS,float2 baseUV) {
     InputConfig c;
+    c.fragment = GetFragment(positionSS);
     c.baseUV = baseUV;
     c.color = 1.0;
     c.flipbookUVB = 0.0;
@@ -82,13 +84,6 @@ float GetSmoothness (InputConfig c) {
 
 float GetFresnel (InputConfig c) {
     return 0.0;
-}
-void ClipLOD(float2 positionCS,float fade)
-{
-    #if defined(LOD_FADE_CROSSFADE)
-    float dither=InterleavedGradientNoise(positionCS.xy, 0);
-    clip(fade + (fade < 0.0 ? dither : -dither));
-    #endif
 }
 
 #endif
