@@ -37,6 +37,10 @@ CBUFFER_START(UnityPerDraw)
 //识别相机是否正交
 	float4 unity_OrthoParams;
 	float4 _ProjectionParams;
+	float4 _ScreenParams;//屏幕空间的的uv坐标，位置除以屏幕尺寸
+
+	float4 _ZBufferParams;//zbuffer线性化的参数 原始深度到线性深度的转化稀疏
+	
 CBUFFER_END
 
 float4x4 unity_MatrixVP;

@@ -19,8 +19,37 @@ public partial class CameraRenderer
 
     private Lighting lighting = new Lighting();
     private PostFXStack postFXStack = new PostFXStack();
-    static int frameBufferId = Shader.PropertyToID("_CameraFrameBuffer");//后处理源纹理
+    //static int frameBufferId = Shader.PropertyToID("_CameraFrameBuffer");//后处理源纹理深度合并的一个缓冲区
+
+    private static int
+        colorAttachmentId = Shader.PropertyToID("_CameraColorAttachment"),
+        depthAttachmentId = Shader.PropertyToID("_CameraDepthAttachment");//拆分位颜色盒深度信息
+
+    private static int
+        depthTextureId = Shader.PropertyToID("_CameraDepthTexture"),
+        sourceTextureId = Shader.PropertyToID("_SourceTexture");
+        
+    private bool useDepthTexture;//是否启用深度纹理
+    private bool useIntermediateBuffer;//
     static CameraSettings defaultCameraSettings = new CameraSettings();
+    private Material material;
+
+    public CameraRenderer(Shader shader)
+    {
+        material = CoreUtils.CreateEngineMaterial(shader);
+    }
+    public void Dispose () {
+        CoreUtils.Destroy(material);
+    }
+    void Draw (RenderTargetIdentifier from, RenderTargetIdentifier to) {
+        buffer.SetGlobalTexture(sourceTextureId, from);
+        buffer.SetRenderTarget(
+            to, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store
+        );
+        buffer.DrawProcedural(
+            Matrix4x4.identity, material, 0, MeshTopology.Triangles, 3
+        );
+    }
     public void Render(ScriptableRenderContext context, Camera camera,
         bool allowHDR, bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject, ShadowSettings shadowSettings, PostFXSettings postFXSettings,int colorLUTResolution)
     {
@@ -29,6 +58,7 @@ public partial class CameraRenderer
         var crpCamera = camera.GetComponent<CustomRenderPipelineCamera>();
         CameraSettings cameraSettings =
             crpCamera ? crpCamera.Settings : defaultCameraSettings;
+        useDepthTexture = true;
         
         if (cameraSettings.overridePostFX) {
             postFXSettings = cameraSettings.postFXSettings;
@@ -55,7 +85,11 @@ public partial class CameraRenderer
         DrawGizmosBeforeFX();
         if (postFXStack.IsActive)
         {
-            postFXStack.Render(frameBufferId);
+            postFXStack.Render(colorAttachmentId);
+        }
+        else if (useIntermediateBuffer) {
+            Draw(colorAttachmentId, BuiltinRenderTextureType.CameraTarget);
+            ExecuteBuffer();
         }
         DrawGizmosAfterFX();
         Cleanup();
@@ -85,6 +119,8 @@ public partial class CameraRenderer
             cullingResults,ref drawingSettings,ref filteringSettings);
         //天空box
         context.DrawSkybox(camera);
+        //复制深度图
+        CopyAttachments();
         
         
         
@@ -96,29 +132,55 @@ public partial class CameraRenderer
             cullingResults,ref drawingSettings,ref filteringSettings);
     }
 
+    void CopyAttachments()
+    {
+        if (useDepthTexture)
+        {
+            buffer.GetTemporaryRT(depthTextureId,camera.pixelWidth,camera.pixelHeight,
+                32,FilterMode.Point,RenderTextureFormat.Depth);
+            buffer.CopyTexture(depthAttachmentId,depthTextureId);
+            ExecuteBuffer();
+        }
+    }
+
 
     void Cleanup () {
         lighting.Cleanup();
-        if (postFXStack.IsActive) {
-            buffer.ReleaseTemporaryRT(frameBufferId);
+        if (useIntermediateBuffer)
+        {
+            buffer.ReleaseTemporaryRT(colorAttachmentId);
+            buffer.ReleaseTemporaryRT(depthAttachmentId);
+
+            if (useDepthTexture)
+            {
+                buffer.ReleaseTemporaryRT(depthTextureId);
+            }
         }
     }
+    
     void Setup()
     {
         context.SetupCameraProperties(camera);//传入相机的mvp矩阵等参数
         CameraClearFlags flags;
         flags = camera.clearFlags;
-        if (postFXStack.IsActive) {
+        useIntermediateBuffer = useDepthTexture || postFXStack.IsActive;
+        if (useIntermediateBuffer) {
             if (flags > CameraClearFlags.Color) {
                 flags = CameraClearFlags.Color;
             }
             buffer.GetTemporaryRT(
-                frameBufferId, camera.pixelWidth, camera.pixelHeight,
-                32, FilterMode.Bilinear, useHDR? RenderTextureFormat.DefaultHDR: RenderTextureFormat.Default
+                colorAttachmentId, camera.pixelWidth, camera.pixelHeight,
+                0, FilterMode.Bilinear, useHDR? RenderTextureFormat.DefaultHDR: RenderTextureFormat.Default
             );//支持defaulthdr 每个颜色16位，在任何平台总是支持
-            buffer.SetRenderTarget(
+            buffer.GetTemporaryRT(
+                depthAttachmentId,camera.pixelWidth,camera.pixelHeight,32,FilterMode.Point,RenderTextureFormat.Depth);
+            /*buffer.SetRenderTarget(
                 frameBufferId,
                 RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store
+            );*/
+            buffer.SetRenderTarget(
+                colorAttachmentId,
+                RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store,depthAttachmentId,RenderBufferLoadAction.DontCare,RenderBufferStoreAction.Store
             );
         }
 

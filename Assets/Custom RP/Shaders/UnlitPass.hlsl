@@ -89,7 +89,7 @@ float4 UnlitPassFragment (Varyings input) : SV_TARGET
     
     return float4(base.rgb, GetFinalAlpha(base.a));
     
-    //return float4(config.fragment.depth.xxx/20, 1.0);
+   //return float4(config.fragment.bufferDepth.xxx/20, 1.0);
 
 }
 

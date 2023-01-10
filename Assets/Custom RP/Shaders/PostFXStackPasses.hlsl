@@ -5,7 +5,7 @@
 TEXTURE2D(_PostFXSource);
 TEXTURE2D(_PostFXSource2);
 TEXTURE2D(_ColorGradingLUT);
-float4 _ProjectionParams;//x分量决定了是否颠倒
+//float4 _ProjectionParams;//x分量决定了是否颠倒
 
 float4 _PostFXSource_TexelSize;
 

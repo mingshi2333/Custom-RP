@@ -6,18 +6,22 @@ using LightType = UnityEngine.LightType;
 public partial class CustomRenderPipeline
 {
     partial void InitializeForEditor();
+    partial void DisposeForEditor ();
     #if UNITY_EDITOR
     partial void InitializeForEditor()
     {
         Lightmapping.SetDelegate(lightsDelegate);
     }
 
-    protected override void Dispose(bool disposing)
-    {
+    protected override void Dispose (bool disposing) {
         base.Dispose(disposing);
+        DisposeForEditor();
+        renderer.Dispose();
+    }
+    partial void DisposeForEditor () {
+        //base.Dispose(disposing);
         Lightmapping.ResetDelegate();
     }
-    
     
     /// <summary>
     /// lightdatagi是用于正确初始化点光源等光源的数据
